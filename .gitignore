@@ -1,0 +1,14 @@
+**/.DS_Store
+*.java-version
+*~
+.bloop
+.idea
+.metals
+derby.log
+makefile
+project/project/
+project/target
+spark-warehouse
+spark/
+target
+tmp

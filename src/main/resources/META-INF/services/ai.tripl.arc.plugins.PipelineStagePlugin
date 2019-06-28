@@ -1,0 +1,3 @@
+ai.tripl.arc.execute.KafkaCommitExecute
+ai.tripl.arc.extract.KafkaExtract
+ai.tripl.arc.load.KafkaLoad
