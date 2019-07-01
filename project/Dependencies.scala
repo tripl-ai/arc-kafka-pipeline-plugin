@@ -13,6 +13,8 @@ object Dependencies {
 
   // spark
   val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
+  val sparkHive = "org.apache.spark" %% "spark-hive" % sparkVersion % "provided" 
+  val sparkAvro = "org.apache.spark" %% "spark-avro" % sparkVersion % "provided"
 
   // kafka
   val kafka = "org.apache.kafka" %% "kafka" % "2.2.1" intransitive()
@@ -27,6 +29,8 @@ object Dependencies {
     typesafeConfig,
 
     sparkSql,
+    sparkHive,
+    sparkAvro,
 
     kafka,
     kafkaClients,
