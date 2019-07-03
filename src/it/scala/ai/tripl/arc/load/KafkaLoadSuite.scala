@@ -21,8 +21,6 @@ import org.apache.kafka.common.TopicPartition
 
 import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
-import ai.tripl.arc.util.log.LoggerFactory 
-
 import ai.tripl.arc.util.TestUtils
 
 class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
@@ -42,7 +40,8 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
                   .config("spark.sql.streaming.checkpointLocation", checkPointPath)
                   .appName("Spark ETL Test")
                   .getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("INFO")
+    implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
     spark.conf.set("spark.sql.session.timeZone", "UTC")       
@@ -59,7 +58,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
   test("KafkaLoad: (value)") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val topic = UUID.randomUUID.toString
@@ -131,7 +130,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
   test("KafkaLoad: (key, value)") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val topic = UUID.randomUUID.toString
@@ -205,7 +204,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
   test("KafkaLoad: Structured Streaming") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit var arcContext = TestUtils.getARCContext(isStreaming=true)
 
     val topic = UUID.randomUUID.toString

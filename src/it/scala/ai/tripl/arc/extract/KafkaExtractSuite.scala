@@ -15,9 +15,7 @@ import org.apache.spark.sql.types._
 
 import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
-import ai.tripl.arc.util.log.LoggerFactory 
 import ai.tripl.arc.util._
-
 import ai.tripl.arc.util.TestUtils
 
 class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
@@ -37,7 +35,8 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
                   .config("spark.sql.streaming.checkpointLocation", checkPointPath)
                   .appName("Spark ETL Test")
                   .getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("INFO")
+    implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
     spark.conf.set("spark.sql.session.timeZone", "UTC")   
@@ -56,7 +55,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
   test("KafkaExtract: Binary") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val topic = UUID.randomUUID.toString
@@ -126,7 +125,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
   test("KafkaExtract: autoCommit = false") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val topic = UUID.randomUUID.toString
@@ -217,7 +216,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
   test("KafkaExtract: autoCommit = true") {
     implicit val spark = session
     import spark.implicits._
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val topic = UUID.randomUUID.toString
@@ -299,7 +298,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
   test("KafkaExtract: Structured Streaming") {
     implicit val spark = session
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=true)
 
     val topic = UUID.randomUUID.toString
