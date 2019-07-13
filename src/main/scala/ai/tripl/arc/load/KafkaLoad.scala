@@ -164,6 +164,8 @@ object KafkaLoadStage {
       commonProps.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(stage.retries))    
       commonProps.put(ProducerConfig.BATCH_SIZE_CONFIG, String.valueOf(stage.batchSize))    
 
+      val stageTopic = stage.topic
+
       try {
         repartitionedDF.schema.map(_.dataType) match {
           case List(StringType) => {
@@ -181,7 +183,7 @@ object KafkaLoadStage {
                   // create payload and send sync
                   val value = row.getString(0)
 
-                  val producerRecord = new ProducerRecord[java.lang.String, java.lang.String](stage.topic, value)
+                  val producerRecord = new ProducerRecord[java.lang.String, java.lang.String](stageTopic, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(value.getBytes.length)
@@ -207,7 +209,7 @@ object KafkaLoadStage {
                     // create payload and send sync
                     val value = row.get(0).asInstanceOf[Array[Byte]]
 
-                    val producerRecord = new ProducerRecord[Array[Byte],Array[Byte]](stage.topic, value)
+                    val producerRecord = new ProducerRecord[Array[Byte],Array[Byte]](stageTopic, value)
                     kafkaProducer.send(producerRecord)
                     recordAccumulator.add(1)
                     bytesAccumulator.add(value.length)
@@ -234,7 +236,7 @@ object KafkaLoadStage {
                   val key = row.getString(0)
                   val value = row.getString(1)
 
-                  val producerRecord = new ProducerRecord[String,String](stage.topic, key, value)
+                  val producerRecord = new ProducerRecord[String,String](stageTopic, key, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(key.getBytes.length + value.getBytes.length)
@@ -262,7 +264,7 @@ object KafkaLoadStage {
                   val key = row.get(0).asInstanceOf[Array[Byte]]
                   val value = row.get(1).asInstanceOf[Array[Byte]]
 
-                  val producerRecord = new ProducerRecord[Array[Byte], Array[Byte]](stage.topic, key, value)
+                  val producerRecord = new ProducerRecord[Array[Byte], Array[Byte]](stageTopic, key, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(key.length + value.length)
