@@ -1,8 +1,6 @@
 package ai.tripl.arc.execute
 
-import java.net.URI
 import java.util.Properties
-import scala.collection.JavaConverters._
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -12,21 +10,10 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
-import com.typesafe.config._
-
-import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
-import ai.tripl.arc.config._
 import ai.tripl.arc.config.Error._
 import ai.tripl.arc.plugins.PipelineStagePlugin
-import ai.tripl.arc.util.CloudUtils
 import ai.tripl.arc.util.DetailException
-import ai.tripl.arc.util.EitherUtils._
-import ai.tripl.arc.util.ExtractUtils
-import ai.tripl.arc.util.MetadataUtils
-import ai.tripl.arc.util.ListenerUtils
-import ai.tripl.arc.util.HTTPUtils
-import ai.tripl.arc.util.Utils
 
 class KafkaCommitExecute extends PipelineStagePlugin {
 
@@ -90,8 +77,7 @@ case class KafkaCommitExecuteStage(
 object KafkaCommitExecuteStage {
 
  def execute(stage: KafkaCommitExecuteStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
-    import spark.implicits._
-
+   
     val df = spark.table(stage.inputView)     
 
     val offsetsLogMap = new java.util.HashMap[String, Object]()
