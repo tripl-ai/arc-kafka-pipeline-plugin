@@ -20,7 +20,6 @@ import org.apache.spark.sql.functions._
 
 import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
-import ai.tripl.arc.util.ConfigUtils._
 import ai.tripl.arc.config.ArcPipeline
 import com.typesafe.config._
 import ai.tripl.arc.util._

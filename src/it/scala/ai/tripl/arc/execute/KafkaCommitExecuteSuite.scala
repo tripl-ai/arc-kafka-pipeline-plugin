@@ -134,9 +134,9 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     assert(expected.except(actual).count === 0)    
 
     // execute the update
-    ai.tripl.arc.kafka.execute.KafkaCommitExecuteStage.execute(
-      ai.tripl.arc.kafka.execute.KafkaCommitExecuteStage(
-        plugin=new ai.tripl.arc.kafka.execute.KafkaCommitExecute,
+    ai.tripl.arc.execute.KafkaCommitExecuteStage.execute(
+      ai.tripl.arc.execute.KafkaCommitExecuteStage(
+        plugin=new ai.tripl.arc.execute.KafkaCommitExecute,
         name="df", 
         description=None,
         inputView=outputView, 
