@@ -5,7 +5,7 @@
 
 trigger:
 - master
-- release
+- release/*
 - develop
 - feature/*
 
@@ -32,10 +32,10 @@ steps:
 
 - script: |
     docker-compose \
-    -d \
-    --build \
     -f src/it/resources/docker-compose.yml \
-    up
+    up \
+    --build \
+    -d
   displayName: 'Create a docker-compose based testing environment (including idle mozilla/sbt:8u212_1.2.8)'
 
 - script: |
@@ -58,7 +58,7 @@ steps:
     sbt \
     sbt "+publishSigned"
   displayName: 'sbt publishSigned (push to https://oss.sonatype.org/content/groups/staging/ai/tripl/)'
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/release'))
+  condition: and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/heads/release'))
 
 - script: |
     docker exec \
@@ -66,6 +66,6 @@ steps:
     -e SONATYPE_PASSWORD=$(SONATYPE_PASSWORD) \
     -e PGP_PASSPHRASE=$(PGP_PASSPHRASE) \
     sbt \
-    sbt "+sonatypeRelease"
+    sbt "sonatypeRelease"
   displayName: 'sbt sonatypeRelease (push to https://repo1.maven.org/maven2/ai/tripl/)'
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))  
