@@ -21,10 +21,8 @@ import org.apache.spark.sql.functions._
 import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
 import ai.tripl.arc.util.ConfigUtils._
-import ai.tripl.arc.util.log.LoggerFactory 
-
+import ai.tripl.arc.config.ArcPipeline
 import com.typesafe.config._
-
 import ai.tripl.arc.util._
 
 class AvroExtractSuite extends FunSuite with BeforeAndAfter {
@@ -41,7 +39,8 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
                   .config("spark.ui.port", "9999")
                   .appName("Spark ETL Test")
                   .getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("INFO")
+    implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
     spark.conf.set("spark.sql.session.timeZone", "UTC")   
@@ -56,7 +55,7 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
 
   test("AvroExtract: Binary with Kafka Schema Registry") {
     implicit val spark = session
-    implicit val logger = LoggerFactory.getLogger(spark.sparkContext.applicationId)
+    implicit val logger = TestUtils.getLogger()
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val schema = new Schema.Parser().parse(CloudUtils.getTextBlob(new URI(schemaFile)))
@@ -101,7 +100,7 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
     }"""
 
 
-    val pipelineEither = ConfigUtils.parseConfig(Left(conf), arcContext)
+    val pipelineEither = ArcPipeline.parseConfig(Left(conf), arcContext)
 
     pipelineEither match {
       case Left(_) => {

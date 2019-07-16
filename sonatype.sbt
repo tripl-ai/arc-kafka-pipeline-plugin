@@ -11,8 +11,8 @@ import xerial.sbt.Sonatype._
 homepage := Some(url("https://arc.tripl.ai"))
 scmInfo := Some(
   ScmInfo(
-    url("https://github.com/tripl-ai/arc"),
-    "scm:git@github.com:tripl-ai/arc.git"
+    url("https://github.com/tripl-ai/arc-kafka-pipeline-plugin"),
+    "scm:git@github.com:tripl-ai/arc-kafka-pipeline-plugin.git"
   )
 )
 developers := List(

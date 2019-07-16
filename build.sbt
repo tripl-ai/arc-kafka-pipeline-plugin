@@ -24,8 +24,10 @@ lazy val root = (project in file(".")).
     pgpPassphrase := Some(sys.env.get("PGP_PASSPHRASE").getOrElse("").toCharArray),
     pgpSecretRing := file("/pgp/secring.asc"),
     pgpPublicRing := file("/pgp/pubring.asc"),
-    updateOptions := updateOptions.value.withGigahorse(false)
-  )
+    updateOptions := updateOptions.value.withGigahorse(false),
+    resolvers += "Sonatype OSS Staging" at "https://oss.sonatype.org/content/groups/staging"    
+  )    
+
 
 fork in run := true  
 

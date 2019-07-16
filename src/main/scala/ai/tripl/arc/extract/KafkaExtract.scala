@@ -170,6 +170,12 @@ object KafkaExtractStage {
         }  
       }
 
+      val stageMaxPollRecords = stage.maxPollRecords
+      val stageGroupID = stage.groupID
+      val stageTopic = stage.topic
+      val stageTimeout = stage.timeout
+      val stageAutoCommit = stage.autoCommit
+
       try {
         spark.sqlContext.emptyDataFrame.repartition(numPartitions).mapPartitions { 
           partition => {
@@ -178,15 +184,15 @@ object KafkaExtractStage {
             
             val props = new Properties
             props.putAll(commonProps)
-            props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stage.maxPollRecords.toString)
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${partitionId}")
+            props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stageMaxPollRecords.toString)
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
 
             // try to assign records based on partitionId and extract 
             val kafkaConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
-            val topicPartition = new TopicPartition(stage.topic, partitionId)
+            val topicPartition = new TopicPartition(stageTopic, partitionId)
 
             def getKafkaRecord(): List[KafkaRecord] = {
-              kafkaConsumer.poll(java.time.Duration.ofMillis(stage.timeout)).records(stage.topic).asScala.map(consumerRecord => {
+              kafkaConsumer.poll(java.time.Duration.ofMillis(stageTimeout)).records(stageTopic).asScala.map(consumerRecord => {
                 KafkaRecord(consumerRecord.topic, consumerRecord.partition, consumerRecord.offset, consumerRecord.timestamp, consumerRecord.key, consumerRecord.value)
               }).toList
             }
@@ -207,7 +213,7 @@ object KafkaExtractStage {
               val dataset = getAllKafkaRecords(getKafkaRecord, Nil)
 
               // only commit offset once consumerRecords are succesfully mapped to case classes
-              if (stage.autoCommit) {
+              if (stageAutoCommit) {
                 kafkaConsumer.commitSync
               }
 
