@@ -26,8 +26,8 @@ import ai.tripl.arc.util._
 
 class AvroExtractSuite extends FunSuite with BeforeAndAfter {
 
-  var session: SparkSession = _  
-  val targetBinaryFile = getClass.getResource("/avro/users.avrobinary").toString 
+  var session: SparkSession = _
+  val targetBinaryFile = getClass.getResource("/avro/users.avrobinary").toString
   val schemaFile = getClass.getResource("/avro/user.avsc").toString
   val outputView = "dataset"
 
@@ -42,10 +42,10 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
     implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
-    spark.conf.set("spark.sql.session.timeZone", "UTC")   
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
 
     session = spark
-    import spark.implicits._    
+    import spark.implicits._
   }
 
   after {
@@ -58,12 +58,12 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
     implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
 
     val schema = new Schema.Parser().parse(CloudUtils.getTextBlob(new URI(schemaFile)))
-    
+
     // POST the schema to kafka so we know it is there as ID=1
     val httpClient = HttpClients.createDefault
     val httpPost = new HttpPost("http://kafka-schema-registry:8081/subjects/Kafka-value/versions");
     httpPost.setEntity(new StringEntity(s"""{"schema": "${StringEscapeUtils.escapeJavaScript(schema.toString)}"}"""));
-    httpPost.addHeader("Content-Type", "application/vnd.schemaregistry.v1+json") 
+    httpPost.addHeader("Content-Type", "application/vnd.schemaregistry.v1+json")
     val response = httpClient.execute(httpPost)
     assert(response.getStatusLine.getStatusCode == 200)
     response.close
@@ -94,7 +94,7 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
           "persist": false,
           "inputField": "value",
           "avroSchemaURI": "http://kafka-schema-registry:8081/schemas/ids/1"
-        }        
+        }
       ]
     }"""
 
@@ -103,7 +103,7 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
 
     pipelineEither match {
       case Left(_) => {
-        println(pipelineEither)  
+        println(pipelineEither)
         assert(false)
       }
       case Right((pipeline, _)) => {

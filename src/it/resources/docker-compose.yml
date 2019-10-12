@@ -65,7 +65,7 @@ services:
   kafka-schema-registry:
     image: confluentinc/cp-schema-registry:5.0.2
     ports:
-      - 28081:8081
+      - 8081:8081
     networks:
       - arc-integration
     depends_on:

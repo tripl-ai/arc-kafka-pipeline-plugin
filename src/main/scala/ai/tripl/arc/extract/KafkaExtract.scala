@@ -53,10 +53,10 @@ class KafkaExtract extends PipelineStagePlugin {
     val timeout = getValue[java.lang.Long]("timeout", default = Some(10000L))
     val autoCommit = getValue[java.lang.Boolean]("autoCommit", default = Some(false))
     val params = readMap("params", c)
-    val invalidKeys = checkValidKeys(c)(expectedKeys)    
+    val invalidKeys = checkValidKeys(c)(expectedKeys)
 
     (name, description, outputView, topic, bootstrapServers, groupID, persist, numPartitions, maxPollRecords, timeout, autoCommit, partitionBy, invalidKeys) match {
-      case (Right(name), Right(description), Right(outputView), Right(topic), Right(bootstrapServers), Right(groupID), Right(persist), Right(numPartitions), Right(maxPollRecords), Right(timeout), Right(autoCommit), Right(partitionBy), Right(invalidKeys)) => 
+      case (Right(name), Right(description), Right(outputView), Right(topic), Right(bootstrapServers), Right(groupID), Right(persist), Right(numPartitions), Right(maxPollRecords), Right(timeout), Right(autoCommit), Right(partitionBy), Right(invalidKeys)) =>
 
         val stage = KafkaExtractStage(
           plugin=this,
@@ -96,18 +96,18 @@ class KafkaExtract extends PipelineStagePlugin {
 
 case class KafkaExtractStage(
     plugin: KafkaExtract,
-    name: String, 
-    description: Option[String], 
-    outputView: String, 
-    topic: String, 
-    bootstrapServers: String, 
-    groupID: String, 
-    maxPollRecords: Int, 
-    timeout: Long, 
-    autoCommit: Boolean, 
-    params: Map[String, String], 
-    persist: Boolean, 
-    numPartitions: Option[Int], 
+    name: String,
+    description: Option[String],
+    outputView: String,
+    topic: String,
+    bootstrapServers: String,
+    groupID: String,
+    maxPollRecords: Int,
+    timeout: Long,
+    autoCommit: Boolean,
+    params: Map[String, String],
+    persist: Boolean,
+    numPartitions: Option[Int],
     partitionBy: List[String]
   ) extends PipelineStage {
 
@@ -179,8 +179,8 @@ object KafkaExtractStage {
         }
       } catch {
         case e: Exception => throw new Exception(e) with DetailException {
-          override val detail = stage.stageDetail          
-        }  
+          override val detail = stage.stageDetail
+        }
       }
 
       val stageMaxPollRecords = stage.maxPollRecords
@@ -190,16 +190,16 @@ object KafkaExtractStage {
       val stageAutoCommit = stage.autoCommit
 
       val df = try {
-        spark.sqlContext.emptyDataFrame.repartition(endOffsets.size).mapPartitions { 
+        spark.sqlContext.emptyDataFrame.repartition(endOffsets.size).mapPartitions {
           partition => {
             // get the partition of this task which maps 1:1 with Kafka partition
             val partitionId = TaskContext.getPartitionId
-            
+
             val props = new Properties
             props.putAll(commonProps)
             props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
 
-            // try to assign records based on partitionId and extract 
+            // try to assign records based on partitionId and extract
             val kafkaConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
             val topicPartition = new TopicPartition(stageTopic, partitionId)
             val endOffset = endOffsets.get(topicPartition).longValue
@@ -229,7 +229,7 @@ object KafkaExtractStage {
 
               // find the position and add the difference to the accumulator so it can be compared with row count
               kafkaPartitionAccumulator.add(KafkaPartition(topicPartition, kafkaConsumer.position(topicPartition), endOffset))
-              
+
               // recursively get batches of records until finished
               val dataset = getAllKafkaRecords(getKafkaRecord, Nil)
 
@@ -248,28 +248,28 @@ object KafkaExtractStage {
         }.toDF
       } catch {
         case e: Exception => throw new Exception(e) with DetailException {
-          override val detail = stage.stageDetail          
+          override val detail = stage.stageDetail
         }
-      }   
-      
+      }
+
       if (!stage.autoCommit) {
         val offsets = new java.util.HashMap[TopicPartition, OffsetAndMetadata]()
         endOffsets.asScala.foreach { case (topicPartition, offset) => {
           offsets.put(topicPartition, new OffsetAndMetadata(offset))
           }
         }
-      } 
+      }
 
       df
     }
 
     // repartition to distribute rows evenly
     val repartitionedDF = stage.partitionBy match {
-      case Nil => { 
+      case Nil => {
         stage.numPartitions match {
           case Some(numPartitions) => df.repartition(numPartitions)
           case None => df
-        }   
+        }
       }
       case partitionBy => {
         // create a column array for repartitioning
@@ -279,7 +279,7 @@ object KafkaExtractStage {
           case None => df.repartition(partitionCols:_*)
         }
       }
-    } 
+    }
     if (arcContext.immutableViews) repartitionedDF.createTempView(stage.outputView) else repartitionedDF.createOrReplaceTempView(stage.outputView)
 
     if (!repartitionedDF.isStreaming) {
@@ -292,7 +292,7 @@ object KafkaExtractStage {
       repartitionedDF.persist(arcContext.storageLevel)
 
       val recordCount = repartitionedDF.count
-      
+
       // store the positions
       val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
       arcContext.userData.put("kafkaExtractOffsets", kafkaPartitions)
@@ -305,23 +305,23 @@ object KafkaExtractStage {
         partitionOffsets.put("endOffset", kafkaPartition.endOffset)
         partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
       }
-      stage.stageDetail.put("partitionsOffsets", partitions) 
+      stage.stageDetail.put("partitionsOffsets", partitions)
 
       // determine expected rows from partition offsets
       val offsetsSum = kafkaPartitions.foldLeft(0L) { (state, kafkaPartition) =>
         state + (kafkaPartition.endOffset - kafkaPartition.position)
       }
 
-      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount)) 
+      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount))
 
       if (offsetsSum != recordCount) {
         throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records.") with DetailException {
-          override val detail = stage.stageDetail          
-        }  
+          override val detail = stage.stageDetail
+        }
       }
 
-  
-    }    
+
+    }
 
     Option(repartitionedDF)
   }

@@ -33,11 +33,11 @@ class KafkaCommitExecute extends PipelineStagePlugin {
     val bootstrapServers = getValue[String]("bootstrapServers")
     val groupID = getValue[String]("groupID")
     val params = readMap("params", c)
-    val invalidKeys = checkValidKeys(c)(expectedKeys)  
+    val invalidKeys = checkValidKeys(c)(expectedKeys)
 
     (name, description, inputView, bootstrapServers, groupID, invalidKeys) match {
-      case (Right(name), Right(description), Right(inputView), Right(bootstrapServers), Right(groupID), Right(invalidKeys)) => 
-        
+      case (Right(name), Right(description), Right(inputView), Right(bootstrapServers), Right(groupID), Right(invalidKeys)) =>
+
         val stage = KafkaCommitExecuteStage(
           plugin=this,
           name=name,
@@ -48,7 +48,7 @@ class KafkaCommitExecute extends PipelineStagePlugin {
           params=params
         )
 
-        stage.stageDetail.put("inputView", inputView)  
+        stage.stageDetail.put("inputView", inputView)
         stage.stageDetail.put("bootstrapServers", bootstrapServers)
 
         Right(stage)
@@ -64,10 +64,10 @@ class KafkaCommitExecute extends PipelineStagePlugin {
 case class KafkaCommitExecuteStage(
     plugin: KafkaCommitExecute,
     name: String,
-    description: Option[String], 
-    inputView: String, 
-    bootstrapServers: String, 
-    groupID: String, 
+    description: Option[String],
+    inputView: String,
+    bootstrapServers: String,
+    groupID: String,
     params: Map[String, String]
   ) extends PipelineStage {
 
@@ -79,7 +79,7 @@ case class KafkaCommitExecuteStage(
 object KafkaCommitExecuteStage {
 
  def execute(stage: KafkaCommitExecuteStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
-   
+
 
     try {
       val kafkaPartitions = arcContext.userData.get("kafkaExtractOffsets") match {
@@ -92,9 +92,9 @@ object KafkaCommitExecuteStage {
       props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-      
+
       // loop and commit for each consumer group
-      kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) => 
+      kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) =>
         val partitionProps = new Properties
         partitionProps.putAll(props)
         partitionProps.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${kafkaPartition.topicPartition.partition}")
@@ -119,11 +119,11 @@ object KafkaCommitExecuteStage {
         partitionOffsets.put("endOffset", kafkaPartition.endOffset)
         partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
       }
-      stage.stageDetail.put("partitionsOffsets", partitions) 
-    
+      stage.stageDetail.put("partitionsOffsets", partitions)
+
     } catch {
       case e: Exception => throw new Exception(e) with DetailException {
-        override val detail = stage.stageDetail          
+        override val detail = stage.stageDetail
       }
     }
 

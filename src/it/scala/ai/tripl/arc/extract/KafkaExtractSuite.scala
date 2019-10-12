@@ -24,7 +24,7 @@ import ai.tripl.arc.util.TestUtils
 
 class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
-  var session: SparkSession = _  
+  var session: SparkSession = _
   val inputView = "inputView"
   val outputView = "outputView"
   val bootstrapServers = "kafka:29092"
@@ -43,17 +43,17 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
-    spark.conf.set("spark.sql.session.timeZone", "UTC")   
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
 
     session = spark
-    import spark.implicits._  
+    import spark.implicits._
 
-    FileUtils.deleteQuietly(new java.io.File(checkPointPath)) 
+    FileUtils.deleteQuietly(new java.io.File(checkPointPath))
   }
 
   after {
     session.stop()
-    FileUtils.deleteQuietly(new java.io.File(checkPointPath)) 
+    FileUtils.deleteQuietly(new java.io.File(checkPointPath))
   }
 
   test("KafkaExtract: end-to-end") {
@@ -79,18 +79,18 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView, 
+        inputView=inputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=10000, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=10000,
+        retries=0,
         params=Map.empty
       )
-    )   
+    )
 
     val conf = s"""{
       "stages": [
@@ -107,7 +107,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
           "groupID": "${groupId}",
           "timeout": ${timeout},
           "maxPollRecords": 100
-        }      
+        }
       ]
     }"""
 
@@ -116,14 +116,14 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     pipelineEither match {
       case Left(_) => {
-        println(pipelineEither)  
+        println(pipelineEither)
         assert(false)
       }
       case Right((pipeline, _)) => {
         ARC.run(pipeline)
       }
     }
-  }  
+  }
 
   test("KafkaExtract: Binary") {
     implicit val spark = session
@@ -148,33 +148,33 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView, 
+        inputView=inputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=16384, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
         params=Map.empty
       )
-    )   
+    )
 
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -189,11 +189,11 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       println("actual")
       actual.show(false)
       println("expected")
-      expected.show(false)  
+      expected.show(false)
     }
     assert(actual.except(expected).count === 0)
     assert(expected.except(actual).count === 0)
-  }  
+  }
 
   test("KafkaExtract: autoCommit = false") {
     implicit val spark = session
@@ -218,54 +218,54 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView, 
+        inputView=inputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=16384, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
         params=Map.empty
       )
-    )   
+    )
 
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
-        params=Map.empty     
+        params=Map.empty
       )
     ).get
 
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
-        params=Map.empty 
+        params=Map.empty
       )
     ).get
 
@@ -280,11 +280,11 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       println("actual")
       actual.show(false)
       println("expected")
-      expected.show(false)  
+      expected.show(false)
     }
     assert(actual.except(expected).count === 0)
     assert(expected.except(actual).count === 0)
-  }  
+  }
 
   test("KafkaExtract: autoCommit = true") {
     implicit val spark = session
@@ -309,52 +309,52 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView, 
+        inputView=inputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=16384, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
         params=Map.empty
       )
-    )   
+    )
 
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=true, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=true,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
-        params=Map.empty  
+        params=Map.empty
       )
     ).get
 
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=true, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=true,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -367,7 +367,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     assert(expected.count === dataset.count)
     assert(actual.count === 0)
-  }    
+  }
 
   test("KafkaExtract: Structured Streaming") {
     implicit val spark = session
@@ -380,17 +380,17 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -398,7 +398,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     val writeStream0 = extractDataset
       .writeStream
-      .queryName("extract") 
+      .queryName("extract")
       .format("memory")
       .start
 
@@ -425,6 +425,6 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     } finally {
       writeStream0.stop
       writeStream1.stop
-    }    
-  }   
+    }
+  }
 }
