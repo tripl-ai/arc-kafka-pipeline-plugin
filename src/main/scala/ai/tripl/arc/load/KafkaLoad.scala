@@ -26,6 +26,7 @@ import ai.tripl.arc.util.ExtractUtils
 import ai.tripl.arc.util.MetadataUtils
 import ai.tripl.arc.util.ListenerUtils
 import ai.tripl.arc.util.Utils
+import ai.tripl.arc.extract.KafkaPartition
 
 class KafkaLoad extends PipelineStagePlugin {
 
@@ -111,6 +112,8 @@ object KafkaLoadStage {
     import spark.implicits._
  
     val signature = "KafkaLoad requires inputView to be dataset with [key: string, value: string], [value: string], [key: binary, value: binary] or [value: binary] signature."
+
+    val kafkaPartitionAccumulator = spark.sparkContext.collectionAccumulator[KafkaPartition]
 
     val df = spark.table(stage.inputView)     
 

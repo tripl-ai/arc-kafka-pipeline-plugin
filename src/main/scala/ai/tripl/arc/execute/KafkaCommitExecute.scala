@@ -15,6 +15,7 @@ import ai.tripl.arc.api.API._
 import ai.tripl.arc.config.Error._
 import ai.tripl.arc.plugins.PipelineStagePlugin
 import ai.tripl.arc.util.DetailException
+import ai.tripl.arc.extract.KafkaPartition
 
 class KafkaCommitExecute extends PipelineStagePlugin {
 
@@ -81,31 +82,44 @@ object KafkaCommitExecuteStage {
    
 
     try {
-      val commit = arcContext.userData.get("kafkaExtractOffsets").asInstanceOf[java.util.HashMap[TopicPartition, OffsetAndMetadata]]
+      val kafkaPartitions = arcContext.userData.get("kafkaExtractOffsets") match {
+        case Some(kafkaPartitions) => kafkaPartitions.asInstanceOf[List[KafkaPartition]]
+        case None => throw new Exception("cannot find previous KafkaExtract commit offsets")
+      }
 
       val props = new Properties
       props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
       props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-      props.put(ConsumerConfig.GROUP_ID_CONFIG, stage.groupID)
-      val kafkaConsumer = new KafkaConsumer[String, String](props)
       
-      try {
-        kafkaConsumer.commitSync(commit)
-      } finally {
-        kafkaConsumer.close
+      // loop and commit for each consumer group
+      kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) => 
+        val partitionProps = new Properties
+        partitionProps.putAll(props)
+        partitionProps.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${kafkaPartition.topicPartition.partition}")
+        val kafkaConsumer = new KafkaConsumer[String, String](partitionProps)
+
+        try {
+          // commit only up to the endOffset retrieved at the start of the job
+          val offsets = new java.util.HashMap[TopicPartition,OffsetAndMetadata]()
+          offsets.put(kafkaPartition.topicPartition, new OffsetAndMetadata(kafkaPartition.endOffset))
+
+          kafkaConsumer.commitSync(offsets)
+        } finally {
+          kafkaConsumer.close
+        }
       }
 
       // log start and end offsets for each partition
       val partitions = new java.util.HashMap[Int, java.util.HashMap[String, Long]]()
-      commit.asScala.foreach { case (topicPartition, offsetAndMetadata) => {
-          val partitionOffsets = new java.util.HashMap[String, Long]()
-          partitionOffsets.put("end", offsetAndMetadata.offset)
-          partitions.put(topicPartition.partition, partitionOffsets)
-        }
+      kafkaPartitions.foreach { kafkaPartition =>
+        val partitionOffsets = new java.util.HashMap[String, Long]()
+        partitionOffsets.put("startOffset", kafkaPartition.position)
+        partitionOffsets.put("endOffset", kafkaPartition.endOffset)
+        partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
       }
-      stage.stageDetail.put("partitionOffsets", partitions)
+      stage.stageDetail.put("partitionsOffsets", partitions) 
     
     } catch {
       case e: Exception => throw new Exception(e) with DetailException {

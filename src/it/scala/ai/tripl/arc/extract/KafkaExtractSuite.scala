@@ -13,8 +13,12 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
+
 import ai.tripl.arc.api._
 import ai.tripl.arc.api.API._
+import ai.tripl.arc.config.ArcPipeline
 import ai.tripl.arc.util._
 import ai.tripl.arc.util.TestUtils
 
@@ -51,6 +55,75 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     session.stop()
     FileUtils.deleteQuietly(new java.io.File(checkPointPath)) 
   }
+
+  test("KafkaExtract: end-to-end") {
+    implicit val spark = session
+    import spark.implicits._
+    implicit val logger = TestUtils.getLogger()
+    implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
+
+    val topic = UUID.randomUUID.toString
+    val groupId = UUID.randomUUID.toString
+
+    // insert 100 records
+    val dataset = spark.sqlContext.range(0, 9478)
+      .select("id")
+      .withColumn("uniform", rand(seed=10))
+      .withColumn("normal", randn(seed=27))
+      .repartition(10)
+      .toJSON
+      .select(col("value").cast(BinaryType))
+
+    dataset.createOrReplaceTempView(inputView)
+
+    load.KafkaLoadStage.execute(
+      load.KafkaLoadStage(
+        plugin=new load.KafkaLoad,
+        name="df", 
+        description=None,
+        inputView=inputView, 
+        topic=topic,
+        bootstrapServers=bootstrapServers,
+        acks= -1,
+        numPartitions=None, 
+        batchSize=10000, 
+        retries=0, 
+        params=Map.empty
+      )
+    )   
+
+    val conf = s"""{
+      "stages": [
+        {
+          "type": "KafkaExtract",
+          "name": "try to parse",
+          "environments": [
+            "production",
+            "test"
+          ],
+          "outputView": "test",
+          "bootstrapServers": "${bootstrapServers}",
+          "topic": "${topic}",
+          "groupID": "${groupId}",
+          "timeout": ${timeout},
+          "maxPollRecords": 100
+        }      
+      ]
+    }"""
+
+
+    val pipelineEither = ArcPipeline.parseConfig(Left(conf), arcContext)
+
+    pipelineEither match {
+      case Left(_) => {
+        println(pipelineEither)  
+        assert(false)
+      }
+      case Right((pipeline, _)) => {
+        ARC.run(pipeline)
+      }
+    }
+  }  
 
   test("KafkaExtract: Binary") {
     implicit val spark = session

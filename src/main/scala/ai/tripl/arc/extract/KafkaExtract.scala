@@ -116,13 +116,13 @@ case class KafkaExtractStage(
   }
 }
 
-object KafkaExtractStage {
+case class KafkaPartition (
+  topicPartition: TopicPartition,
+  position: Long,
+  endOffset: Long
+)
 
-  case class KafkaPartition (
-    topicPartition: TopicPartition,
-    position: Long,
-    endOffset: Long
-  )
+object KafkaExtractStage {
 
   case class KafkaRecord (
     topic: String,
@@ -187,6 +187,7 @@ object KafkaExtractStage {
       val stageGroupID = stage.groupID
       val stageTopic = stage.topic
       val stageTimeout = stage.timeout
+      val stageAutoCommit = stage.autoCommit
 
       val df = try {
         spark.sqlContext.emptyDataFrame.repartition(endOffsets.size).mapPartitions { 
@@ -228,9 +229,16 @@ object KafkaExtractStage {
 
               // find the position and add the difference to the accumulator so it can be compared with row count
               kafkaPartitionAccumulator.add(KafkaPartition(topicPartition, kafkaConsumer.position(topicPartition), endOffset))
-
+              
               // recursively get batches of records until finished
               val dataset = getAllKafkaRecords(getKafkaRecord, Nil)
+
+              if (stageAutoCommit) {
+                // commit only up to the endOffset retrieved at the start of the job
+                val offsets = new java.util.HashMap[TopicPartition,OffsetAndMetadata]()
+                offsets.put(topicPartition, new OffsetAndMetadata(endOffset))
+                kafkaConsumer.commitSync(offsets)
+              }
 
               dataset.toIterator
             } finally {
@@ -242,30 +250,16 @@ object KafkaExtractStage {
         case e: Exception => throw new Exception(e) with DetailException {
           override val detail = stage.stageDetail          
         }
-      }       
-    
-      try {
-        val kafkaDriverConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
-        try {
-          val commit = new java.util.HashMap[TopicPartition, OffsetAndMetadata]()
-          endOffsets.asScala.foreach { case (topicPartition, offset) => {
-              commit.put(topicPartition, new OffsetAndMetadata(offset))
-            }
-          }
-          if (stage.autoCommit) {
-            kafkaDriverConsumer.commitSync(commit)
-          } else {
-            arcContext.userData.put("kafkaExtractOffsets", commit)
-          }
-        } finally {
-          kafkaDriverConsumer.close
-        }
-      } catch {
-        case e: Exception => throw new Exception(e) with DetailException {
-          override val detail = stage.stageDetail          
-        }  
-      } 
+      }   
       
+      if (!stage.autoCommit) {
+        val offsets = new java.util.HashMap[TopicPartition, OffsetAndMetadata]()
+        endOffsets.asScala.foreach { case (topicPartition, offset) => {
+          offsets.put(topicPartition, new OffsetAndMetadata(offset))
+          }
+        }
+      } 
+
       df
     }
 
@@ -295,26 +289,38 @@ object KafkaExtractStage {
 
     // force persistence if autoCommit=false to prevent double KafkaExtract execution and different offsets
     if ((stage.persist || !stage.autoCommit) && !repartitionedDF.isStreaming) {
-      repartitionedDF.persist(StorageLevel.MEMORY_AND_DISK_SER)
+      repartitionedDF.persist(arcContext.storageLevel)
+
+      val recordCount = repartitionedDF.count
+      
+      // store the positions
+      val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
+      arcContext.userData.put("kafkaExtractOffsets", kafkaPartitions)
+
+      // log offsets
+      val partitions = new java.util.HashMap[Int, java.util.HashMap[String, Long]]()
+      kafkaPartitions.foreach { kafkaPartition =>
+        val partitionOffsets = new java.util.HashMap[String, Long]()
+        partitionOffsets.put("startOffset", kafkaPartition.position)
+        partitionOffsets.put("endOffset", kafkaPartition.endOffset)
+        partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
+      }
+      stage.stageDetail.put("partitionsOffsets", partitions) 
 
       // determine expected rows from partition offsets
-      val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
-      val partitions = new java.util.HashMap[Int, java.util.HashMap[String, Long]]()
       val offsetsSum = kafkaPartitions.foldLeft(0L) { (state, kafkaPartition) =>
-        val partitionOffsets = new java.util.HashMap[String, Long]()
-        partitionOffsets.put("start", kafkaPartition.position)
-        partitionOffsets.put("end", kafkaPartition.endOffset)
-        partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
         state + (kafkaPartition.endOffset - kafkaPartition.position)
       }
 
-      val recordCount = repartitionedDF.count
+      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount)) 
+
       if (offsetsSum != recordCount) {
-        throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records.")
+        throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records.") with DetailException {
+          override val detail = stage.stageDetail          
+        }  
       }
 
-      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount)) 
-      stage.stageDetail.put("partitionOffsets", partitions)      
+  
     }    
 
     Option(repartitionedDF)

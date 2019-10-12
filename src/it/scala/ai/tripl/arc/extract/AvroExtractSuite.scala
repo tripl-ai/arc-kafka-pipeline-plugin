@@ -107,7 +107,8 @@ class AvroExtractSuite extends FunSuite with BeforeAndAfter {
         assert(false)
       }
       case Right((pipeline, _)) => {
-        ARC.run(pipeline)
+        val df = ARC.run(pipeline)
+        df.get.show
       }
     }
   }

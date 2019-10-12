@@ -7,17 +7,17 @@ networks:
     driver: bridge
     ipam:
      config:
-       - subnet: 172.19.0.0/24  
+       - subnet: 172.19.0.0/24
 
 services:
   sbt:
     container_name: sbt
-    image: mozilla/sbt:8u212_1.2.8 
+    image: mozilla/sbt:8u212_1.2.8
     networks:
-      - arc-integration     
+      - arc-integration
     command: tail -f /dev/null
     volumes:
-      - ${PWD}:/app  
+      - ${PWD}:/app
       - /tmp/pgp:/pgp
     working_dir: /app
 
@@ -31,6 +31,8 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:5.0.2
+    ports:
+      - 9092:9092
     networks:
       - arc-integration
     depends_on:
@@ -44,9 +46,11 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_NUM_PARTITIONS: 10
-  
+
   kafka-rest:
     image: confluentinc/cp-kafka-rest:5.0.2
+    ports:
+      - 8082:8082
     networks:
       - arc-integration
     depends_on:
@@ -60,6 +64,8 @@ services:
 
   kafka-schema-registry:
     image: confluentinc/cp-schema-registry:5.0.2
+    ports:
+      - 28081:8081
     networks:
       - arc-integration
     depends_on:
