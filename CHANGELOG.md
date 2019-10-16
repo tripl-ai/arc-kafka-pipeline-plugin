@@ -1,5 +1,10 @@
 ## Change Log
 
+# 1.1.0
+
+- change `KafkaExtract` to base records to extract based on offsets at start of execution rather than waiting polling to record no records in a time window.
+- improved logging for `KafkaExtract`
+
 # 1.0.1
 
 - update to Spark 2.4.4

@@ -1,6 +1,7 @@
 package ai.tripl.arc.execute
 
 import java.util.Properties
+import scala.collection.JavaConverters._
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -14,6 +15,7 @@ import ai.tripl.arc.api.API._
 import ai.tripl.arc.config.Error._
 import ai.tripl.arc.plugins.PipelineStagePlugin
 import ai.tripl.arc.util.DetailException
+import ai.tripl.arc.extract.KafkaPartition
 
 class KafkaCommitExecute extends PipelineStagePlugin {
 
@@ -31,11 +33,11 @@ class KafkaCommitExecute extends PipelineStagePlugin {
     val bootstrapServers = getValue[String]("bootstrapServers")
     val groupID = getValue[String]("groupID")
     val params = readMap("params", c)
-    val invalidKeys = checkValidKeys(c)(expectedKeys)  
+    val invalidKeys = checkValidKeys(c)(expectedKeys)
 
     (name, description, inputView, bootstrapServers, groupID, invalidKeys) match {
-      case (Right(name), Right(description), Right(inputView), Right(bootstrapServers), Right(groupID), Right(invalidKeys)) => 
-        
+      case (Right(name), Right(description), Right(inputView), Right(bootstrapServers), Right(groupID), Right(invalidKeys)) =>
+
         val stage = KafkaCommitExecuteStage(
           plugin=this,
           name=name,
@@ -46,7 +48,7 @@ class KafkaCommitExecute extends PipelineStagePlugin {
           params=params
         )
 
-        stage.stageDetail.put("inputView", inputView)  
+        stage.stageDetail.put("inputView", inputView)
         stage.stageDetail.put("bootstrapServers", bootstrapServers)
 
         Right(stage)
@@ -62,10 +64,10 @@ class KafkaCommitExecute extends PipelineStagePlugin {
 case class KafkaCommitExecuteStage(
     plugin: KafkaCommitExecute,
     name: String,
-    description: Option[String], 
-    inputView: String, 
-    bootstrapServers: String, 
-    groupID: String, 
+    description: Option[String],
+    inputView: String,
+    bootstrapServers: String,
+    groupID: String,
     params: Map[String, String]
   ) extends PipelineStage {
 
@@ -77,14 +79,13 @@ case class KafkaCommitExecuteStage(
 object KafkaCommitExecuteStage {
 
  def execute(stage: KafkaCommitExecuteStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
-   
-    val df = spark.table(stage.inputView)     
 
-    val offsetsLogMap = new java.util.HashMap[String, Object]()
 
     try {
-      // get the aggregation and limit to 10000 for overflow protection
-      val offset = df.groupBy(df("topic"), df("partition")).agg(max(df("offset"))).orderBy(df("topic"), df("partition")).limit(10000)
+      val kafkaPartitions = arcContext.userData.get("kafkaExtractOffsets") match {
+        case Some(kafkaPartitions) => kafkaPartitions.asInstanceOf[List[KafkaPartition]]
+        case None => throw new Exception("cannot find previous KafkaExtract commit offsets")
+      }
 
       val props = new Properties
       props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
@@ -92,30 +93,37 @@ object KafkaCommitExecuteStage {
       props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
 
-      offset.collect.foreach(row => {
-        val topic = row.getString(0)
-        val partitionId = row.getInt(1)
-        val offset = row.getLong(2) + 1 // note the +1 which is required to set offset as correct value for next read
+      // loop and commit for each consumer group
+      kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) =>
+        val partitionProps = new Properties
+        partitionProps.putAll(props)
+        partitionProps.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${kafkaPartition.topicPartition.partition}")
+        val kafkaConsumer = new KafkaConsumer[String, String](partitionProps)
 
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${partitionId}")
-        val kafkaConsumer = new KafkaConsumer[String, String](props)
-
-        // set the offset
         try {
-          val offsetsMap = new java.util.HashMap[TopicPartition,OffsetAndMetadata]()
-          offsetsMap.put(new TopicPartition(topic, partitionId), new OffsetAndMetadata(offset))
-          kafkaConsumer.commitSync(offsetsMap)
+          // commit only up to the endOffset retrieved at the start of the job
+          val offsets = new java.util.HashMap[TopicPartition,OffsetAndMetadata]()
+          offsets.put(kafkaPartition.topicPartition, new OffsetAndMetadata(kafkaPartition.endOffset))
 
-          // update logs
-          offsetsLogMap.put(s"${stage.groupID}-${partitionId}", java.lang.Long.valueOf(offset))
-          stage.stageDetail.put("offsets", offsetsLogMap) 
+          kafkaConsumer.commitSync(offsets)
         } finally {
           kafkaConsumer.close
         }
-      })
+      }
+
+      // log start and end offsets for each partition
+      val partitions = new java.util.HashMap[Int, java.util.HashMap[String, Long]]()
+      kafkaPartitions.foreach { kafkaPartition =>
+        val partitionOffsets = new java.util.HashMap[String, Long]()
+        partitionOffsets.put("startOffset", kafkaPartition.position)
+        partitionOffsets.put("endOffset", kafkaPartition.endOffset)
+        partitions.put(kafkaPartition.topicPartition.partition, partitionOffsets)
+      }
+      stage.stageDetail.put("partitionsOffsets", partitions)
+
     } catch {
       case e: Exception => throw new Exception(e) with DetailException {
-        override val detail = stage.stageDetail          
+        override val detail = stage.stageDetail
       }
     }
 
