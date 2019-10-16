@@ -18,17 +18,17 @@ import org.apache.spark.storage.StorageLevel
 
 import ai.tripl.arc.api.API.ARCContext
 import ai.tripl.arc.plugins._
-import ai.tripl.arc.util.log.LoggerFactory 
+import ai.tripl.arc.util.log.LoggerFactory
 import org.apache.log4j.{Level, Logger}
 
 case class KnownData(
-    booleanDatum: Boolean, 
-    dateDatum: Date, 
-    decimalDatum: Decimal, 
-    doubleDatum: Double, 
-    integerDatum: Integer, 
-    longDatum: Long, 
-    stringDatum: String, 
+    booleanDatum: Boolean,
+    dateDatum: Date,
+    decimalDatum: Decimal,
+    doubleDatum: Double,
+    integerDatum: Integer,
+    longDatum: Long,
+    stringDatum: String,
     timeDatum: String,
     timestampDatum: Timestamp,
     nullDatum: Null
@@ -49,13 +49,13 @@ object TestUtils {
       val loader = ai.tripl.arc.util.Utils.getContextOrSparkClassLoader
 
       ARCContext(
-        jobId=None, 
-        jobName=None, 
-        environment=Option(environment), 
-        environmentId=None, 
-        configUri=None, 
-        isStreaming=isStreaming, 
-        ignoreEnvironments=false, 
+        jobId=None,
+        jobName=None,
+        environment=Option(environment),
+        environmentId=None,
+        configUri=None,
+        isStreaming=isStreaming,
+        ignoreEnvironments=false,
         commandLineArguments=commandLineArguments,
         storageLevel=StorageLevel.MEMORY_AND_DISK_SER,
         immutableViews=false,
@@ -82,12 +82,12 @@ object TestUtils {
                 .withColumnRenamed("_1", "expected")
                 .withColumnRenamed("_2", "actual")
 
-            transformedDF.persist 
+            transformedDF.persist
 
             val expectedExceptActual = transformedDF.filter(col("actual").isNull)
             val actualExceptExpected = transformedDF.filter(col("expected").isNull)
             val expectedExceptActualCount = expectedExceptActual.count
-            val actualExceptExpectedCount = actualExceptExpected.count     
+            val actualExceptExpectedCount = actualExceptExpected.count
 
             if (expectedExceptActualCount != 0 || actualExceptExpectedCount != 0) {
                 println("EXPECTED")
@@ -101,15 +101,15 @@ object TestUtils {
                 false
             } else {
                 true
-            }  
+            }
         } else {
             true
-        }  
+        }
     }
 
     def getKnownDataset()(implicit spark: SparkSession): DataFrame = {
         import spark.implicits._
-        
+
         val dataset = Seq(
             KnownData(booleanDatum=true, dateDatum=Date.valueOf("2016-12-18"), decimalDatum=Decimal(54.321, 10, 3), doubleDatum=42.4242, integerDatum=17, longDatum=1520828868, stringDatum="test,breakdelimiter", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant), timeDatum="12:34:56", nullDatum=null),
             KnownData(booleanDatum=false, dateDatum=Date.valueOf("2016-12-19"), decimalDatum=Decimal(12.345, 10, 3), doubleDatum=21.2121, integerDatum=34, longDatum=1520828123, stringDatum="breakdelimiter,test", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 29, 17, 21, 49, 0, ZoneId.of("UTC")).toInstant), timeDatum="23:45:16", nullDatum=null)
@@ -121,7 +121,7 @@ object TestUtils {
     // modified dataset for DiffTransform test
     def getKnownAlteredDataset()(implicit spark: SparkSession): DataFrame = {
         import spark.implicits._
-        
+
         val dataset = Seq(
             // same first row
             KnownData(booleanDatum=true, dateDatum=Date.valueOf("2016-12-18"), decimalDatum=Decimal(54.321, 10, 3), doubleDatum=42.4242, integerDatum=17, longDatum=1520828868, stringDatum="test,breakdelimiter", timestampDatum=Timestamp.from(ZonedDateTime.of(2017, 12, 20, 21, 46, 54, 0, ZoneId.of("UTC")).toInstant), timeDatum="12:34:56", nullDatum=null),
@@ -130,12 +130,12 @@ object TestUtils {
         )
 
         dataset.toDF
-    }    
+    }
 
     def getKnownStringDataset()(implicit spark: SparkSession): DataFrame = {
         val df = getKnownDataset()
         df.select(df.columns.map(c => col(c).cast(StringType)) : _*)
-    }    
+    }
 
     def knownDatasetPrettyJSON(row: Int)(implicit spark: SparkSession): String = {
         val json = getKnownDataset().toJSON.collect.toList(row)
@@ -152,7 +152,7 @@ object TestUtils {
         } else {
             List[File]()
         }
-    }     
+    }
 
     def getKnownDatasetMetadataJson(): String = {
     """
@@ -222,7 +222,7 @@ object TestUtils {
             "metadata": {
                 "private": true,
                 "securityLevel": 2
-            }            
+            }
         },
         {
             "id": "31541ea3-5b74-4753-857c-770bd601c35b",
@@ -238,7 +238,7 @@ object TestUtils {
             "metadata": {
                 "private": true,
                 "securityLevel": 8
-            }            
+            }
         },
         {
             "id": "a66f3bbe-d1c6-44c7-b096-a4be59fdcd78",
@@ -254,7 +254,7 @@ object TestUtils {
             "metadata": {
                 "private": true,
                 "securityLevel": 10
-            }            
+            }
         },
         {
             "id": "1c0eec1d-17cd-45da-8744-7a9ef5b8b086",
@@ -270,7 +270,7 @@ object TestUtils {
             "metadata": {
                 "private": false,
                 "securityLevel": 0
-            }            
+            }
         },
         {
             "id": "9712c383-22d1-44a6-9ca2-0087af4857f1",
@@ -286,7 +286,7 @@ object TestUtils {
             "metadata": {
                 "private": false,
                 "securityLevel": 0
-            }            
+            }
         },
         {
             "id": "eb17a18e-4664-4016-8beb-cd2a492d4f20",
@@ -305,8 +305,8 @@ object TestUtils {
             "metadata": {
                 "private": true,
                 "securityLevel": 8
-            }            
-        },        
+            }
+        },
         {
             "id": "8e42c8f0-22a8-40db-9798-6dd533c1de36",
             "name": "timestampDatum",
@@ -325,11 +325,11 @@ object TestUtils {
             "metadata": {
                 "private": true,
                 "securityLevel": 7
-            }            
-        }       
+            }
+        }
     ]
     """
     }
- 
+
 }
 

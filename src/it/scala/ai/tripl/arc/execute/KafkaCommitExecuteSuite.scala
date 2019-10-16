@@ -20,7 +20,7 @@ import ai.tripl.arc.util.TestUtils
 
 class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
 
-  var session: SparkSession = _  
+  var session: SparkSession = _
   val inputView0 = "inputView0"
   val inputView1 = "inputView1"
   val outputView = "outputView"
@@ -38,10 +38,10 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     implicit val logger = TestUtils.getLogger()
 
     // set for deterministic timezone
-    spark.conf.set("spark.sql.session.timeZone", "UTC")       
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
 
     session = spark
-    import spark.implicits._  
+    import spark.implicits._
   }
 
   after {
@@ -70,15 +70,15 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView0, 
+        inputView=inputView0,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=16384, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
         params=Map.empty
       )
     )
@@ -87,17 +87,17 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -112,17 +112,17 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -131,36 +131,36 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     expected = dataset0
     actual = extractDataset1.select("value")
     assert(actual.except(expected).count === 0)
-    assert(expected.except(actual).count === 0)    
+    assert(expected.except(actual).count === 0)
 
     // execute the update
     ai.tripl.arc.execute.KafkaCommitExecuteStage.execute(
       ai.tripl.arc.execute.KafkaCommitExecuteStage(
         plugin=new ai.tripl.arc.execute.KafkaCommitExecute,
-        name="df", 
+        name="df",
         description=None,
-        inputView=outputView, 
+        inputView=outputView,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         params=Map.empty
       )
-    ) 
+    )
 
     // read should now have offset saved so as no new records exist in kafka should return 0 records
     val extractDataset2 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -181,34 +181,34 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
-        name="df", 
+        name="df",
         description=None,
-        inputView=inputView1, 
+        inputView=inputView1,
         topic=topic,
         bootstrapServers=bootstrapServers,
         acks= -1,
-        numPartitions=None, 
-        batchSize=16384, 
-        retries=0, 
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
         params=Map.empty
       )
-    ) 
+    )
 
     // read should now have offset saved so should only retieve records from second insert (200 records)
     val extractDataset3 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
-        name="df", 
+        name="df",
         description=None,
-        outputView=outputView, 
+        outputView=outputView,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
-        maxPollRecords=10000, 
-        timeout=timeout, 
-        autoCommit=false, 
-        persist=true, 
-        numPartitions=None, 
+        maxPollRecords=10000,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
         partitionBy=Nil,
         params=Map.empty
       )
@@ -218,5 +218,5 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     actual = extractDataset3.select("value")
     assert(actual.except(expected).count === 0)
     assert(expected.except(actual).count === 0)
-  }      
+  }
 }
