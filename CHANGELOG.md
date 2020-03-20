@@ -2,7 +2,6 @@
 
 ## 1.2.0
 
-- update to Kafka 2.4.1
 - update to Spark 2.4.5
 - update to Arc 2.8.0
 - update to Scala 2.12.10
