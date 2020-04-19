@@ -12,7 +12,7 @@ networks:
 services:
   sbt:
     container_name: sbt
-    image: mozilla/sbt:8u212_1.2.8
+    image: mozilla/sbt:8u232_1.3.8
     networks:
       - arc-integration
     command: tail -f /dev/null
@@ -30,7 +30,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:5.4.1
+    image: confluentinc/cp-kafka:5.0.2
     ports:
       - 9092:9092
     networks:
