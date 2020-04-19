@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.3.0
+
+- update to Kafka 2.3.1
+- update to Arc 2.10.0
+
 ## 1.2.0
 
 - update to Spark 2.4.5
