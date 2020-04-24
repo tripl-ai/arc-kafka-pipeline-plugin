@@ -6,6 +6,7 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
+import org.apache.spark.TaskContext
 
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
@@ -167,12 +168,29 @@ object KafkaLoadStage {
       commonProps.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(stage.retries))
       commonProps.put(ProducerConfig.BATCH_SIZE_CONFIG, String.valueOf(stage.batchSize))
 
+      // the topic so it can be serialised
       val stageTopic = stage.topic
+
+      // create producer on the driver to get numPartitions of target topic
+      val props = new Properties
+      props.putAll(commonProps)
+      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+      val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)      
+      val topicNumPartitions =  try {
+        kafkaProducer.partitionsFor(stageTopic).asScala.length
+      } finally {
+        kafkaProducer.close
+      }
 
       try {
         repartitionedDF.schema.map(_.dataType) match {
           case List(StringType) => {
             repartitionedDF.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
+              // get the partition of this task which maps n:1 with Kafka partition
+              val partitionId = TaskContext.getPartitionId
+              val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
+
               val props = new Properties
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
@@ -186,7 +204,7 @@ object KafkaLoadStage {
                   // create payload and send sync
                   val value = row.getString(0)
 
-                  val producerRecord = new ProducerRecord[java.lang.String, java.lang.String](stageTopic, value)
+                  val producerRecord = new ProducerRecord[java.lang.String, java.lang.String](stageTopic, assignedPartition, null, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(value.getBytes.length)
@@ -198,6 +216,10 @@ object KafkaLoadStage {
           }
           case List(BinaryType) => {
             repartitionedDF.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
+              // get the partition of this task which maps n:1 with Kafka partition
+              val partitionId = TaskContext.getPartitionId
+              val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
+
               val props = new Properties
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
@@ -212,7 +234,7 @@ object KafkaLoadStage {
                     // create payload and send sync
                     val value = row.get(0).asInstanceOf[Array[Byte]]
 
-                    val producerRecord = new ProducerRecord[Array[Byte],Array[Byte]](stageTopic, value)
+                    val producerRecord = new ProducerRecord[Array[Byte], Array[Byte]](stageTopic, assignedPartition, null, value)
                     kafkaProducer.send(producerRecord)
                     recordAccumulator.add(1)
                     bytesAccumulator.add(value.length)
@@ -225,6 +247,10 @@ object KafkaLoadStage {
           }
           case List(StringType, StringType) => {
             repartitionedDF.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
+              // get the partition of this task which maps n:1 with Kafka partition
+              val partitionId = TaskContext.getPartitionId
+              val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
+
               val props = new Properties
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
@@ -239,7 +265,7 @@ object KafkaLoadStage {
                   val key = row.getString(0)
                   val value = row.getString(1)
 
-                  val producerRecord = new ProducerRecord[String,String](stageTopic, key, value)
+                  val producerRecord = new ProducerRecord[String, String](stageTopic, assignedPartition, key, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(key.getBytes.length + value.getBytes.length)
@@ -251,8 +277,10 @@ object KafkaLoadStage {
           }
           case List(BinaryType, BinaryType) => {
             repartitionedDF.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
-              // KafkaProducer properties
-              // https://kafka.apache.org/documentation/#producerconfigs
+              // get the partition of this task which maps n:1 with Kafka partition
+              val partitionId = TaskContext.getPartitionId
+              val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
+
               val props = new Properties
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
@@ -267,7 +295,7 @@ object KafkaLoadStage {
                   val key = row.get(0).asInstanceOf[Array[Byte]]
                   val value = row.get(1).asInstanceOf[Array[Byte]]
 
-                  val producerRecord = new ProducerRecord[Array[Byte], Array[Byte]](stageTopic, key, value)
+                  val producerRecord = new ProducerRecord[Array[Byte], Array[Byte]](stageTopic, assignedPartition, key, value)
                   kafkaProducer.send(producerRecord)
                   recordAccumulator.add(1)
                   bytesAccumulator.add(key.length + value.length)

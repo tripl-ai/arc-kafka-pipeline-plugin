@@ -29,6 +29,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
   val outputView = "outputView"
   val bootstrapServers = "kafka:29092"
   val timeout = 2000L
+  val numPartitions = 10 // see docker-compose KAFKA_NUM_PARTITIONS=10
   val checkPointPath = "/tmp/checkpoint"
 
   before {
@@ -70,7 +71,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       .select("id")
       .withColumn("uniform", rand(seed=10))
       .withColumn("normal", randn(seed=27))
-      .repartition(10)
+      .repartition(numPartitions, col("id"))
       .toJSON
       .select(col("value").cast(BinaryType))
 
@@ -115,10 +116,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val pipelineEither = ArcPipeline.parseConfig(Left(conf), arcContext)
 
     pipelineEither match {
-      case Left(_) => {
-        println(pipelineEither)
-        assert(false)
-      }
+      case Left(err) => fail(err.toString)
       case Right((pipeline, _)) => {
         ARC.run(pipeline)
       }
@@ -139,7 +137,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       .select("id")
       .withColumn("uniform", rand(seed=10))
       .withColumn("normal", randn(seed=27))
-      .repartition(10)
+      .repartition(numPartitions, col("id"))
       .toJSON
       .select(col("value").cast(BinaryType))
 
@@ -209,7 +207,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       .select("id")
       .withColumn("uniform", rand(seed=10))
       .withColumn("normal", randn(seed=27))
-      .repartition(10)
+      .repartition(numPartitions, col("id"))
       .toJSON
       .select(col("value").cast(BinaryType))
 
@@ -300,7 +298,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       .select("id")
       .withColumn("uniform", rand(seed=10))
       .withColumn("normal", randn(seed=27))
-      .repartition(10)
+      .repartition(numPartitions, col("id"))
       .toJSON
       .select(col("value").cast(BinaryType))
 
