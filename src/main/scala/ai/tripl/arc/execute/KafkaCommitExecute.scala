@@ -83,7 +83,11 @@ object KafkaCommitExecuteStage {
 
     try {
       val kafkaPartitions = arcContext.userData.get("kafkaExtractOffsets") match {
-        case Some(kafkaPartitions) => kafkaPartitions.asInstanceOf[List[KafkaPartition]]
+        case Some(kafkaPartitions) => try {
+          kafkaPartitions.asInstanceOf[List[KafkaPartition]]
+        } catch {
+          case e: Exception => throw new Exception("cannot convert previous KafkaExtract commit offsets to List[KafkaPartition]")
+        }
         case None => throw new Exception("cannot find previous KafkaExtract commit offsets")
       }
 

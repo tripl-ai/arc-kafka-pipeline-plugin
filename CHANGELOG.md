@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.4.0
+
+- update to Kafka 2.4.1
+
+**NOTE** This is the last release supporting `Scala 2.11` given the preview release of `Spark 3.0` which only supports `Scala 2.12`.
+
 ## 1.3.0
 
 - update to Kafka 2.3.1

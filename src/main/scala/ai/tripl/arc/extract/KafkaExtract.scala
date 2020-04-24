@@ -215,12 +215,12 @@ object KafkaExtractStage {
 
             @tailrec
             def getAllKafkaRecords(kafkaRecords: List[KafkaRecord], kafkaRecordsAccumulator: List[KafkaRecord]): List[KafkaRecord] = {
-                kafkaRecords match {
-                    case Nil => kafkaRecordsAccumulator
-                    case _ => {
-                      getAllKafkaRecords(getKafkaRecord, kafkaRecordsAccumulator ::: kafkaRecords)
-                    }
+              kafkaRecords match {
+                case Nil => kafkaRecordsAccumulator
+                case _ => {
+                  getAllKafkaRecords(getKafkaRecord, kafkaRecordsAccumulator ::: kafkaRecords)
                 }
+              }
             }
 
             try {
