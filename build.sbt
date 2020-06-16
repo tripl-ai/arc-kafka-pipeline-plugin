@@ -1,8 +1,7 @@
 import Dependencies._
 
-lazy val scala211 = "2.11.12"
-lazy val scala212 = "2.12.10"
-lazy val supportedScalaVersions = List(scala211, scala212)
+lazy val scala212 = "2.12.11"
+lazy val supportedScalaVersions = List(scala212)
 
 lazy val root = (project in file(".")).
   enablePlugins(BuildInfoPlugin).
@@ -28,6 +27,8 @@ lazy val root = (project in file(".")).
     resolvers += "Sonatype OSS Staging" at "https://oss.sonatype.org/content/groups/staging"    
   )    
 
+resolvers += Resolver.mavenLocal
+publishM2Configuration := publishM2Configuration.value.withOverwrite(true)
 
 fork in run := true  
 
