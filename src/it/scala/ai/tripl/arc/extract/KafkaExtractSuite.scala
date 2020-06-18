@@ -26,7 +26,8 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
   var session: SparkSession = _
   val inputView = "inputView"
-  val outputView = "outputView"
+  val outputView0 = "outputView0"
+  val outputView1 = "outputView1"
   val bootstrapServers = "kafka:29092"
   val timeout = 2000L
   val numPartitions = 10 // see docker-compose KAFKA_NUM_PARTITIONS=10
@@ -65,8 +66,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     val topic = UUID.randomUUID.toString
     val groupId = UUID.randomUUID.toString
-
-    // insert 100 records
+    
     val dataset = spark.sqlContext.range(0, 9478)
       .select("id")
       .withColumn("uniform", rand(seed=10))
@@ -77,24 +77,20 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     dataset.createOrReplaceTempView(inputView)
 
-    load.KafkaLoadStage.execute(
-      load.KafkaLoadStage(
-        plugin=new load.KafkaLoad,
-        name="df",
-        description=None,
-        inputView=inputView,
-        topic=topic,
-        bootstrapServers=bootstrapServers,
-        acks= -1,
-        numPartitions=None,
-        batchSize=10000,
-        retries=0,
-        params=Map.empty
-      )
-    )
-
     val conf = s"""{
       "stages": [
+        {
+          "type": "KafkaLoad",
+          "name": "try to parse",
+          "environments": [
+            "production",
+            "test"
+          ],
+          "inputView": "${inputView}",
+          "bootstrapServers": "${bootstrapServers}",
+          "topic": "${topic}",
+          "batchSize": 10000
+        },        
         {
           "type": "KafkaExtract",
           "name": "try to parse",
@@ -102,7 +98,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
             "production",
             "test"
           ],
-          "outputView": "test",
+          "outputView": "${outputView0}",
           "bootstrapServers": "${bootstrapServers}",
           "topic": "${topic}",
           "groupID": "${groupId}",
@@ -112,13 +108,13 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       ]
     }"""
 
-
     val pipelineEither = ArcPipeline.parseConfig(Left(conf), arcContext)
 
     pipelineEither match {
       case Left(err) => fail(err.toString)
       case Right((pipeline, _)) => {
-        ARC.run(pipeline)
+        val df = ARC.run(pipeline).get
+        assert(df.count == 9478)
       }
     }
   }
@@ -164,7 +160,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView0,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
@@ -234,7 +230,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView0,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
@@ -253,7 +249,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView1,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
@@ -266,8 +262,6 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         params=Map.empty
       )
     ).get
-
-    assert(spark.catalog.isCached(outputView) === true)
 
     val expected = extractDataset0.select($"value").as[String]
     val actual = extractDataset1.select($"value").as[String]
@@ -325,7 +319,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView0,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
@@ -344,7 +338,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView1,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
@@ -357,8 +351,6 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         params=Map.empty
       )
     ).get
-
-    assert(spark.catalog.isCached(outputView) === true)
 
     val expected = extractDataset0.select($"value").as[String]
     val actual = extractDataset1.select($"value").as[String]
@@ -380,7 +372,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         plugin=new extract.KafkaExtract,
         name="df",
         description=None,
-        outputView=outputView,
+        outputView=outputView0,
         topic=topic,
         bootstrapServers=bootstrapServers,
         groupID=groupId,
