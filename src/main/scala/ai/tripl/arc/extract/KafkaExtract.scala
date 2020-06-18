@@ -136,6 +136,9 @@ object KafkaExtractStage {
   def execute(stage: KafkaExtractStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
     import spark.implicits._
 
+    // initialise statistics accumulators
+    val recordAccumulator = spark.sparkContext.longAccumulator
+    val bytesAccumulator = spark.sparkContext.longAccumulator
     val kafkaPartitionAccumulator = spark.sparkContext.collectionAccumulator[KafkaPartition]
 
     val df = if (arcContext.isStreaming) {
@@ -148,8 +151,6 @@ object KafkaExtractStage {
     } else {
       // KafkaConsumer properties
       // https://kafka.apache.org/documentation/#consumerconfigs
-
-
       val commonProps = new Properties
       commonProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
       commonProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer")
@@ -190,7 +191,7 @@ object KafkaExtractStage {
       val stageAutoCommit = stage.autoCommit
 
       val df = try {
-        spark.sqlContext.emptyDataFrame.repartition(endOffsets.size).mapPartitions {
+        spark.sparkContext.parallelize(Seq.empty[String]).repartition(endOffsets.size).mapPartitions {
           partition => {
             // get the partition of this task which maps 1:1 with Kafka partition
             val partitionId = TaskContext.getPartitionId
@@ -209,6 +210,9 @@ object KafkaExtractStage {
                 // only consume records up to the known endOffset
                 consumerRecord.offset <= endOffset
               }).map(consumerRecord => {
+                // add metrics for tracing
+                recordAccumulator.add(1)
+                bytesAccumulator.add((if (consumerRecord.key != null) consumerRecord.key.length else 0) + (if (consumerRecord.value != null) consumerRecord.value.length else 0))
                 KafkaRecord(consumerRecord.topic, consumerRecord.partition, consumerRecord.offset, consumerRecord.timestamp, consumerRecord.key, consumerRecord.value)
               }).toList
             }
@@ -254,11 +258,12 @@ object KafkaExtractStage {
 
       if (!stage.autoCommit) {
         val offsets = new java.util.HashMap[TopicPartition, OffsetAndMetadata]()
-        endOffsets.asScala.foreach { case (topicPartition, offset) => {
-          offsets.put(topicPartition, new OffsetAndMetadata(offset))
+        endOffsets.asScala.foreach {
+          case (topicPartition, offset) => {
+            offsets.put(topicPartition, new OffsetAndMetadata(offset))
           }
         }
-      }
+      }    
 
       df
     }
@@ -293,6 +298,11 @@ object KafkaExtractStage {
 
       val recordCount = repartitionedDF.count
 
+      val inputMetricsMap = new java.util.HashMap[java.lang.String, java.lang.Long]()
+      inputMetricsMap.put("recordsRead", java.lang.Long.valueOf(recordAccumulator.value))
+      inputMetricsMap.put("bytesRead", java.lang.Long.valueOf(bytesAccumulator.value))
+      stage.stageDetail.put("inputMetrics", inputMetricsMap)  
+
       // store the positions
       val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
       arcContext.userData.put("kafkaExtractOffsets", kafkaPartitions)
@@ -319,7 +329,6 @@ object KafkaExtractStage {
           override val detail = stage.stageDetail
         }
       }
-
 
     }
 

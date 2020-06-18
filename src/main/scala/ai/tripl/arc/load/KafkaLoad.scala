@@ -44,7 +44,7 @@ class KafkaLoad extends PipelineStagePlugin {
     val inputView = getValue[String]("inputView")
     val bootstrapServers = getValue[String]("bootstrapServers")
     val topic = getValue[String]("topic")
-    val acks = getValue[Int]("acks", default = Some(1))
+    val acks = getValue[Int]("acks", default = Some(-1))
     val retries = getValue[Int]("retries", default = Some(0))
     val batchSize = getValue[Int]("batchSize", default = Some(16384))
     val numPartitions = getOptionalValue[Int]("numPartitions")
