@@ -30,9 +30,24 @@ import ai.tripl.arc.util.ExtractUtils
 import ai.tripl.arc.util.MetadataUtils
 import ai.tripl.arc.util.Utils
 
-class KafkaExtract extends PipelineStagePlugin {
+class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
+
+  val snippet = """{
+    |  "type": "KafkaExtract",
+    |  "name": "KafkaExtract",
+    |  "environments": [
+    |    "production",
+    |    "test"
+    |  ],
+    |  "bootstrapServers": "kafka:9092",
+    |  "topic": "topic",
+    |  "groupID": "groupID",
+    |  "outputView": "outputView"
+    |}""".stripMargin
+
+  val documentationURI = new java.net.URI(s"${baseURI}/extract/#kafkaextract")
 
   def instantiate(index: Int, config: com.typesafe.config.Config)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Either[List[ai.tripl.arc.config.Error.StageError], PipelineStage] = {
     import ai.tripl.arc.config.ConfigReader._
@@ -109,7 +124,7 @@ case class KafkaExtractStage(
     persist: Boolean,
     numPartitions: Option[Int],
     partitionBy: List[String]
-  ) extends PipelineStage {
+  ) extends ExtractPipelineStage {
 
   override def execute()(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
     KafkaExtractStage.execute(this)
@@ -263,7 +278,7 @@ object KafkaExtractStage {
             offsets.put(topicPartition, new OffsetAndMetadata(offset))
           }
         }
-      }    
+      }
 
       df
     }
@@ -301,7 +316,7 @@ object KafkaExtractStage {
       val inputMetricsMap = new java.util.HashMap[java.lang.String, java.lang.Long]()
       inputMetricsMap.put("recordsRead", java.lang.Long.valueOf(recordAccumulator.value))
       inputMetricsMap.put("bytesRead", java.lang.Long.valueOf(bytesAccumulator.value))
-      stage.stageDetail.put("inputMetrics", inputMetricsMap)  
+      stage.stageDetail.put("inputMetrics", inputMetricsMap)
 
       // store the positions
       val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
