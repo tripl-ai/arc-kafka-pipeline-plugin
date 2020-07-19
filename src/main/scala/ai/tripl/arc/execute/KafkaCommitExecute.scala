@@ -17,9 +17,23 @@ import ai.tripl.arc.plugins.PipelineStagePlugin
 import ai.tripl.arc.util.DetailException
 import ai.tripl.arc.extract.KafkaPartition
 
-class KafkaCommitExecute extends PipelineStagePlugin {
+class KafkaCommitExecute extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
+
+  val snippet = """{
+    |  "type": "KafkaCommitExecute",
+    |  "name": "KafkaCommitExecute",
+    |  "environments": [
+    |    "production",
+    |    "test"
+    |  ],
+    |  "bootstrapServers": "kafka:9092",
+    |  "groupID": "groupID",
+    |  "outputView": "outputView"
+    |}""".stripMargin
+
+  val documentationURI = new java.net.URI(s"${baseURI}/execute/#kafkacommitexecute")
 
   def instantiate(index: Int, config: com.typesafe.config.Config)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Either[List[ai.tripl.arc.config.Error.StageError], PipelineStage] = {
     import ai.tripl.arc.config.ConfigReader._

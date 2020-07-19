@@ -29,9 +29,23 @@ import ai.tripl.arc.util.ListenerUtils
 import ai.tripl.arc.util.Utils
 import ai.tripl.arc.extract.KafkaPartition
 
-class KafkaLoad extends PipelineStagePlugin {
+class KafkaLoad extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
+
+  val snippet = """{
+    |  "type": "KafkaLoad",
+    |  "name": "KafkaLoad",
+    |  "environments": [
+    |    "production",
+    |    "test"
+    |  ],
+    |  "inputView": "inputView",
+    |  "bootstrapServers": "kafka:9092",
+    |  "topic": "topic"
+    |}""".stripMargin
+
+  val documentationURI = new java.net.URI(s"${baseURI}/load/#kafkaload")
 
   def instantiate(index: Int, config: com.typesafe.config.Config)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Either[List[ai.tripl.arc.config.Error.StageError], PipelineStage] = {
     import ai.tripl.arc.config.ConfigReader._
@@ -98,7 +112,7 @@ case class KafkaLoadStage(
     retries: Int,
     batchSize: Int,
     params: Map[String, String]
-  ) extends PipelineStage {
+  ) extends LoadPipelineStage {
 
   override def execute()(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
     KafkaLoadStage.execute(this)
@@ -176,7 +190,7 @@ object KafkaLoadStage {
       props.putAll(commonProps)
       props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
       props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-      val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)      
+      val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)
       val topicNumPartitions =  try {
         kafkaProducer.partitionsFor(stageTopic).asScala.length
       } finally {
