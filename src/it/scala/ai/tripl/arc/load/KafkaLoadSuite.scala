@@ -87,6 +87,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -124,6 +125,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -179,6 +181,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -201,7 +204,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
       (kafkaDriverConsumer.beginningOffsets(topicPartitions).asScala, kafkaDriverConsumer.endOffsets(topicPartitions).asScala)
     } finally {
       kafkaDriverConsumer.close
-    }    
+    }
     assert(
       beginningOffsets
         // join with endOffset by key
@@ -216,6 +219,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -245,7 +249,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     }
     assert(actualExceptExpectedCount === 0)
     assert(expectedExceptActualCount === 0)
-  }  
+  }
 
   test("KafkaLoad: (value) [String]") {
     implicit val spark = session
@@ -270,6 +274,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -292,7 +297,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
       (kafkaDriverConsumer.beginningOffsets(topicPartitions).asScala, kafkaDriverConsumer.endOffsets(topicPartitions).asScala)
     } finally {
       kafkaDriverConsumer.close
-    } 
+    }
     assert(
       beginningOffsets
         // join with endOffset by key
@@ -307,6 +312,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -358,6 +364,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
       load.KafkaLoadStage.execute(
         load.KafkaLoadStage(
           plugin=new load.KafkaLoad,
+          id=None,
           name="df",
           description=None,
           inputView=inputView,
@@ -399,6 +406,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -421,7 +429,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
       (kafkaDriverConsumer.beginningOffsets(topicPartitions).asScala, kafkaDriverConsumer.endOffsets(topicPartitions).asScala)
     } finally {
       kafkaDriverConsumer.close
-    }     
+    }
     assert(
       beginningOffsets
         // join with endOffset by key
@@ -436,6 +444,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -496,6 +505,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -517,6 +527,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
     val actual = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,

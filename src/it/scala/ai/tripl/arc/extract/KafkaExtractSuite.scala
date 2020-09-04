@@ -66,7 +66,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
 
     val topic = UUID.randomUUID.toString
     val groupId = UUID.randomUUID.toString
-    
+
     val dataset = spark.sqlContext.range(0, 9478)
       .select("id")
       .withColumn("uniform", rand(seed=10))
@@ -90,7 +90,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
           "bootstrapServers": "${bootstrapServers}",
           "topic": "${topic}",
           "batchSize": 10000
-        },        
+        },
         {
           "type": "KafkaExtract",
           "name": "try to parse",
@@ -142,6 +142,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -158,6 +159,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView0,
@@ -212,6 +214,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -228,6 +231,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView0,
@@ -247,6 +251,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView1,
@@ -301,6 +306,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView,
@@ -317,6 +323,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView0,
@@ -336,6 +343,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView1,
@@ -370,6 +378,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     val extractDataset = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView0,
