@@ -70,6 +70,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView0,
@@ -87,6 +88,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset0 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -112,6 +114,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset1 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -137,6 +140,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     ai.tripl.arc.execute.KafkaCommitExecuteStage.execute(
       ai.tripl.arc.execute.KafkaCommitExecuteStage(
         plugin=new ai.tripl.arc.execute.KafkaCommitExecute,
+        id=None,
         name="df",
         description=None,
         inputView=outputView,
@@ -150,6 +154,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset2 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
@@ -181,6 +186,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     load.KafkaLoadStage.execute(
       load.KafkaLoadStage(
         plugin=new load.KafkaLoad,
+        id=None,
         name="df",
         description=None,
         inputView=inputView1,
@@ -198,6 +204,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
     val extractDataset3 = extract.KafkaExtractStage.execute(
       extract.KafkaExtractStage(
         plugin=new extract.KafkaExtract,
+        id=None,
         name="df",
         description=None,
         outputView=outputView,
