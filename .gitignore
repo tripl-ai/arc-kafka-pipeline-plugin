@@ -14,3 +14,4 @@ target
 tmp
 .vscode
 project/metals.sbt
+**metals.sbt
