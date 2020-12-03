@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.9.0
+
+- add `timestampType` column (`integer`) to match Spark Kafka connector.
+
 ## 1.8.0
 
 - update to Arc 3.4.0
