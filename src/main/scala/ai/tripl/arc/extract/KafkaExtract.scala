@@ -143,12 +143,13 @@ case class KafkaPartition (
 object KafkaExtractStage {
 
   case class KafkaRecord (
+    key: Array[Byte],
+    value: Array[Byte],
     topic: String,
     partition: Int,
     offset: Long,
     timestamp: Long,
-    key: Array[Byte],
-    value: Array[Byte]
+    timestampType: Int,
   )
 
   def execute(stage: KafkaExtractStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
@@ -231,7 +232,7 @@ object KafkaExtractStage {
                 // add metrics for tracing
                 recordAccumulator.add(1)
                 bytesAccumulator.add((if (consumerRecord.key != null) consumerRecord.key.length else 0) + (if (consumerRecord.value != null) consumerRecord.value.length else 0))
-                KafkaRecord(consumerRecord.topic, consumerRecord.partition, consumerRecord.offset, consumerRecord.timestamp, consumerRecord.key, consumerRecord.value)
+                KafkaRecord(consumerRecord.key, consumerRecord.value, consumerRecord.topic, consumerRecord.partition, consumerRecord.offset, consumerRecord.timestamp, consumerRecord.timestampType.id)
               }).toList
             }
 
