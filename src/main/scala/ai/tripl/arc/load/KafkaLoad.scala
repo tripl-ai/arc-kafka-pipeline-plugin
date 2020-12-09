@@ -90,6 +90,7 @@ class KafkaLoad extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("acks", java.lang.Integer.valueOf(acks))
         stage.stageDetail.put("retries", java.lang.Integer.valueOf(retries))
         stage.stageDetail.put("batchSize", java.lang.Integer.valueOf(batchSize))
+        stage.stageDetail.put("params", params.asJava)
 
         Right(stage)
       case _ =>
@@ -187,6 +188,7 @@ object KafkaLoadStage {
 
       // the topic so it can be serialised
       val stageTopic = stage.topic
+      val stageParams = stage.params
 
       // create producer on the driver to get numPartitions of target topic
       val props = new Properties
@@ -212,6 +214,7 @@ object KafkaLoadStage {
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+              stageParams.foreach { case (key, value) => props.put(key, value) }
 
               // create producer
               val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)

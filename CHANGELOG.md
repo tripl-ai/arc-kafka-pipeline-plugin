@@ -2,6 +2,7 @@
 
 ## 1.10.0
 
+- add any values set in `params` will be added to the `KafkaConsumer`/`KafkaProducer` parameters for `KafkaExtract` and `KafkaLoad`.
 - **FIX** logic error in calculation of number of consumed records to be off by `numPartitions`. This defect would result in the inability to consume from topics which are actively receiving records.
 - **FIX** `maxPollRecords` was not being used and set to Kafka default value of `500`.
 

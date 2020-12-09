@@ -100,6 +100,7 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("timeout", java.lang.Long.valueOf(timeout))
         stage.stageDetail.put("autoCommit", java.lang.Boolean.valueOf(autoCommit))
         stage.stageDetail.put("persist", java.lang.Boolean.valueOf(persist))
+        stage.stageDetail.put("params", params.asJava)
 
         Right(stage)
       case _ =>
@@ -208,6 +209,7 @@ object KafkaExtractStage {
       val stageTopic = stage.topic
       val stageTimeout = stage.timeout
       val stageAutoCommit = stage.autoCommit
+      val stageParams = stage.params
 
       val df = try {
         spark.sparkContext.parallelize(Seq.empty[String]).repartition(endOffsets.size).mapPartitions {
@@ -219,6 +221,7 @@ object KafkaExtractStage {
             props.putAll(commonProps)
             props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
             props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stageMaxPollRecords.toString)
+            stageParams.foreach { case (key, value) => props.put(key, value) }
 
             // try to assign records based on partitionId and extract
             val kafkaConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
