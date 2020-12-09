@@ -138,6 +138,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -232,6 +233,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -325,6 +327,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -457,6 +460,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -540,6 +544,7 @@ class KafkaLoadSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
