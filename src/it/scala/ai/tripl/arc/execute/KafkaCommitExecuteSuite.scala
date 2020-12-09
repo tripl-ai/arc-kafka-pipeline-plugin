@@ -101,6 +101,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -127,6 +128,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -167,6 +169,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
@@ -217,6 +220,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         persist=true,
         numPartitions=None,
         partitionBy=Nil,
+        strict=true,
         params=Map.empty
       )
     ).get
