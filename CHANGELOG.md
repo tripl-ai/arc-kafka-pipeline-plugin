@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.10.0
+
+- **FIX** logic error in calculation of number of consumed records to be off by `numPartitions`. This defect would result in the inability to consume from topics which are actively receiving records.
+- **FIX** `maxPollRecords` was not being used and set to Kafka default value of `500`.
+
 ## 1.9.0
 
 - add `timestampType` column (`integer`) to match Spark Kafka connector.

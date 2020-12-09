@@ -65,7 +65,7 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
     val persist = getValue[java.lang.Boolean]("persist", default = Some(false))
     val numPartitions = getOptionalValue[Int]("numPartitions")
     val partitionBy = getValue[StringList]("partitionBy", default = Some(Nil))
-    val maxPollRecords = getValue[Int]("maxPollRecords", default = Some(10000))
+    val maxPollRecords = getValue[Int]("maxPollRecords", default = Some(500))
     val timeout = getValue[java.lang.Long]("timeout", default = Some(10000L))
     val autoCommit = getValue[java.lang.Boolean]("autoCommit", default = Some(false))
     val params = readMap("params", c)
@@ -218,6 +218,7 @@ object KafkaExtractStage {
             val props = new Properties
             props.putAll(commonProps)
             props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
+            props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stageMaxPollRecords.toString)
 
             // try to assign records based on partitionId and extract
             val kafkaConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
@@ -227,7 +228,7 @@ object KafkaExtractStage {
             def getKafkaRecord(): List[KafkaRecord] = {
               kafkaConsumer.poll(java.time.Duration.ofMillis(stageTimeout)).records(stageTopic).asScala.filter(consumerRecord => {
                 // only consume records up to the known endOffset
-                consumerRecord.offset <= endOffset
+                consumerRecord.offset < endOffset
               }).map(consumerRecord => {
                 // add metrics for tracing
                 recordAccumulator.add(1)
@@ -338,10 +339,12 @@ object KafkaExtractStage {
 
       // determine expected rows from partition offsets
       val offsetsSum = kafkaPartitions.foldLeft(0L) { (state, kafkaPartition) =>
+        // endOffset equals count not offset of final message
         state + (kafkaPartition.endOffset - kafkaPartition.position)
       }
 
       stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount))
+
 
       if (offsetsSum != recordCount) {
         throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records.") with DetailException {
