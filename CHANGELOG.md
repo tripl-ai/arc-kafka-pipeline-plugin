@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.10.1
+
+- add `strict` boolean attribute (default `true`) to `KafkaExtract` to throw error when `sum(endOffset) - sum(startOffset)` does not match extracted dataset count. This will not work with topics with `cleanup.policy='compact'`.
+
 ## 1.10.0
 
 - add any values set in `params` will be added to the `KafkaConsumer`/`KafkaProducer` parameters for `KafkaExtract` and `KafkaLoad`.

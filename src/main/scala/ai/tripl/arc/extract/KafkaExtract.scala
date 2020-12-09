@@ -54,7 +54,7 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
     import ai.tripl.arc.config.ConfigUtils._
     implicit val c = config
 
-    val expectedKeys = "type" :: "id" :: "name" :: "description" :: "environments" :: "outputView" :: "bootstrapServers" :: "topic" :: "groupID" :: "autoCommit" :: "maxPollRecords" :: "numPartitions" :: "partitionBy" :: "persist" :: "timeout" :: "params" :: Nil
+    val expectedKeys = "type" :: "id" :: "name" :: "description" :: "environments" :: "outputView" :: "bootstrapServers" :: "topic" :: "groupID" :: "autoCommit" :: "maxPollRecords" :: "numPartitions" :: "partitionBy" :: "persist" :: "timeout" :: "strict" :: "params" :: Nil
     val id = getOptionalValue[String]("id")
     val name = getValue[String]("name")
     val description = getOptionalValue[String]("description")
@@ -68,11 +68,12 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
     val maxPollRecords = getValue[Int]("maxPollRecords", default = Some(500))
     val timeout = getValue[java.lang.Long]("timeout", default = Some(10000L))
     val autoCommit = getValue[java.lang.Boolean]("autoCommit", default = Some(false))
+    val strict = getValue[java.lang.Boolean]("strict", default = Some(true))
     val params = readMap("params", c)
     val invalidKeys = checkValidKeys(c)(expectedKeys)
 
-    (id, name, description, outputView, topic, bootstrapServers, groupID, persist, numPartitions, maxPollRecords, timeout, autoCommit, partitionBy, invalidKeys) match {
-      case (Right(id), Right(name), Right(description), Right(outputView), Right(topic), Right(bootstrapServers), Right(groupID), Right(persist), Right(numPartitions), Right(maxPollRecords), Right(timeout), Right(autoCommit), Right(partitionBy), Right(invalidKeys)) =>
+    (id, name, description, outputView, topic, bootstrapServers, groupID, persist, numPartitions, maxPollRecords, timeout, autoCommit, partitionBy, strict, invalidKeys) match {
+      case (Right(id), Right(name), Right(description), Right(outputView), Right(topic), Right(bootstrapServers), Right(groupID), Right(persist), Right(numPartitions), Right(maxPollRecords), Right(timeout), Right(autoCommit), Right(partitionBy), Right(strict), Right(invalidKeys)) =>
 
         val stage = KafkaExtractStage(
           plugin=this,
@@ -89,7 +90,8 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
           params=params,
           persist=persist,
           numPartitions=numPartitions,
-          partitionBy=partitionBy
+          partitionBy=partitionBy,
+          strict=strict,
         )
 
         stage.stageDetail.put("outputView", outputView)
@@ -100,11 +102,12 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("timeout", java.lang.Long.valueOf(timeout))
         stage.stageDetail.put("autoCommit", java.lang.Boolean.valueOf(autoCommit))
         stage.stageDetail.put("persist", java.lang.Boolean.valueOf(persist))
+        stage.stageDetail.put("strict", java.lang.Boolean.valueOf(strict))
         stage.stageDetail.put("params", params.asJava)
 
         Right(stage)
       case _ =>
-        val allErrors: Errors = List(id, name, description, outputView, topic, bootstrapServers, groupID, persist, numPartitions, maxPollRecords, timeout, autoCommit, partitionBy, invalidKeys).collect{ case Left(errs) => errs }.flatten
+        val allErrors: Errors = List(id, name, description, outputView, topic, bootstrapServers, groupID, persist, numPartitions, maxPollRecords, timeout, autoCommit, partitionBy, strict, invalidKeys).collect{ case Left(errs) => errs }.flatten
         val stageName = stringOrDefault(name, "unnamed stage")
         val err = StageError(index, stageName, c.origin.lineNumber, allErrors)
         Left(err :: Nil)
@@ -127,7 +130,8 @@ case class KafkaExtractStage(
     params: Map[String, String],
     persist: Boolean,
     numPartitions: Option[Int],
-    partitionBy: List[String]
+    partitionBy: List[String],
+    strict: Boolean,
   ) extends ExtractPipelineStage {
 
   override def execute()(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
@@ -320,6 +324,7 @@ object KafkaExtractStage {
       repartitionedDF.persist(arcContext.storageLevel)
 
       val recordCount = repartitionedDF.count
+      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount))
 
       val inputMetricsMap = new java.util.HashMap[java.lang.String, java.lang.Long]()
       inputMetricsMap.put("recordsRead", java.lang.Long.valueOf(recordAccumulator.value))
@@ -340,18 +345,17 @@ object KafkaExtractStage {
       }
       stage.stageDetail.put("partitionsOffsets", partitions)
 
-      // determine expected rows from partition offsets
-      val offsetsSum = kafkaPartitions.foldLeft(0L) { (state, kafkaPartition) =>
-        // endOffset equals count not offset of final message
-        state + (kafkaPartition.endOffset - kafkaPartition.position)
-      }
+      if (stage.strict) {
+        // determine expected rows from partition offsets
+        val offsetsSum = kafkaPartitions.foldLeft(0L) { (state, kafkaPartition) =>
+          // endOffset equals count not offset of final message
+          state + (kafkaPartition.endOffset - kafkaPartition.position)
+        }
 
-      stage.stageDetail.put("records", java.lang.Long.valueOf(recordCount))
-
-
-      if (offsetsSum != recordCount) {
-        throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records.") with DetailException {
-          override val detail = stage.stageDetail
+        if (offsetsSum != recordCount) {
+          throw new Exception(s"KafkaExtract should create same number of records in the target ('${stage.outputView}') as exist in source ('${stage.topic}') but source has ${offsetsSum} records and target created ${recordCount} records. This will not work with topics with cleanup.policy='compact'. Set 'strict' to false to ignore.") with DetailException {
+            override val detail = stage.stageDetail
+          }
         }
       }
 
