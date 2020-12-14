@@ -30,7 +30,7 @@ class KafkaCommitExecute extends PipelineStagePlugin with JupyterCompleter {
     |  ],
     |  "bootstrapServers": "kafka:9092",
     |  "groupID": "groupID",
-    |  "outputView": "outputView"
+    |  "inputView": "inputView"
     |}""".stripMargin
 
   val documentationURI = new java.net.URI(s"${baseURI}/execute/#kafkacommitexecute")
@@ -97,15 +97,14 @@ object KafkaCommitExecuteStage {
 
  def execute(stage: KafkaCommitExecuteStage)(implicit spark: SparkSession, logger: ai.tripl.arc.util.log.logger.Logger, arcContext: ARCContext): Option[DataFrame] = {
 
-
     try {
-      val kafkaPartitions = arcContext.userData.get("kafkaExtractOffsets") match {
+      val kafkaPartitions = arcContext.userData.get(s"${ai.tripl.arc.extract.KafkaExtractStage.KAFKA_EXTRACT_OFFSET_KEY}_${stage.inputView}") match {
         case Some(kafkaPartitions) => try {
           kafkaPartitions.asInstanceOf[List[KafkaPartition]]
         } catch {
           case e: Exception => throw new Exception("cannot convert previous KafkaExtract commit offsets to List[KafkaPartition]")
         }
-        case None => throw new Exception("cannot find previous KafkaExtract commit offsets")
+        case None => throw new Exception(s"cannot find previous KafkaExtract commit offsets key '${ai.tripl.arc.extract.KafkaExtractStage.KAFKA_EXTRACT_OFFSET_KEY}_${stage.inputView}'")
       }
 
       val props = new Properties

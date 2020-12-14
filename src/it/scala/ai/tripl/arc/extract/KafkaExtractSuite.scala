@@ -432,4 +432,39 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
       writeStream1.stop
     }
   }
+
+  test("KafkaExtract: missing topic") {
+    implicit val spark = session
+    import spark.implicits._
+    implicit val logger = TestUtils.getLogger()
+    implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
+
+    val topic = UUID.randomUUID.toString
+    val groupId = UUID.randomUUID.toString
+
+    val thrown0 = intercept[Exception with DetailException] {
+      extract.KafkaExtractStage.execute(
+        extract.KafkaExtractStage(
+          plugin=new extract.KafkaExtract,
+          id=None,
+          name="df",
+          description=None,
+          outputView=outputView0,
+          topic=topic,
+          bootstrapServers=bootstrapServers,
+          groupID=groupId,
+          maxPollRecords=10000,
+          timeout=timeout,
+          autoCommit=false,
+          persist=true,
+          numPartitions=None,
+          partitionBy=Nil,
+          strict=true,
+          params=Map.empty
+        )
+      ).get
+    }
+
+    assert(thrown0.getMessage.contains(s"topic '${topic}' not found in Kafka cluster with bootstrapServers '${bootstrapServers}'."))
+  }
 }

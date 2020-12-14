@@ -147,6 +147,8 @@ case class KafkaPartition (
 
 object KafkaExtractStage {
 
+  val KAFKA_EXTRACT_OFFSET_KEY = "kafkaExtractOffset"
+
   case class KafkaRecord (
     key: Array[Byte],
     value: Array[Byte],
@@ -193,6 +195,9 @@ object KafkaExtractStage {
       // first get the number of partitions, their start and end offsets via the driver process so it can be used for mapPartition
       val endOffsets = try {
         val kafkaDriverConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)
+        if (!kafkaDriverConsumer.listTopics().asScala.contains(stage.topic)) {
+          throw new Exception(s"topic '${stage.topic}' not found in Kafka cluster with bootstrapServers '${stage.bootstrapServers}'.")
+        }
         try {
           val partitionInfos = kafkaDriverConsumer.partitionsFor(stage.topic)
           val topicPartitions = partitionInfos.asScala.map { partitionInfo =>
@@ -333,7 +338,7 @@ object KafkaExtractStage {
 
       // store the positions
       val kafkaPartitions = kafkaPartitionAccumulator.value.asScala.toList
-      arcContext.userData.put("kafkaExtractOffsets", kafkaPartitions)
+      arcContext.userData.put(s"${KafkaExtractStage.KAFKA_EXTRACT_OFFSET_KEY}_${stage.outputView}", kafkaPartitions)
 
       // log offsets
       val partitions = new java.util.HashMap[Int, java.util.HashMap[String, Long]]()
