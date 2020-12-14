@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.11.0
+
+- throw error in `KafkaExtract` when topic does not exist.
+- add ability to commit multiple offsets based on `inputView` name.
+- **FIX** fix incorrect `outputView` value in the `JupyterCompleter`.
+
 ## 1.10.1
 
 - add `strict` boolean attribute (default `true`) to `KafkaExtract` to throw error when `sum(endOffset) - sum(startOffset)` does not match extracted dataset count. This will not work with topics with `cleanup.policy='compact'`.
