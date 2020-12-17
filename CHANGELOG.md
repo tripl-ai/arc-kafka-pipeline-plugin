@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.11.1
+
+- **FIX** add logging of missing `groupID` parameter in `KafkaCommitExecute`.
+
 ## 1.11.0
 
 - throw error in `KafkaExtract` when topic does not exist.

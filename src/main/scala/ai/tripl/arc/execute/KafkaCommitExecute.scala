@@ -66,6 +66,7 @@ class KafkaCommitExecute extends PipelineStagePlugin with JupyterCompleter {
 
         stage.stageDetail.put("inputView", inputView)
         stage.stageDetail.put("bootstrapServers", bootstrapServers)
+        stage.stageDetail.put("groupID", groupID)
 
         Right(stage)
       case _ =>
