@@ -185,10 +185,10 @@ object KafkaLoadStage {
       commonProps.put(ProducerConfig.ACKS_CONFIG, String.valueOf(stage.acks))
       commonProps.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(stage.retries))
       commonProps.put(ProducerConfig.BATCH_SIZE_CONFIG, String.valueOf(stage.batchSize))
+      stage.params.foreach { case (key, value) => commonProps.put(key, value) }
 
       // the topic so it can be serialised
       val stageTopic = stage.topic
-      val stageParams = stage.params
 
       // create producer on the driver to get numPartitions of target topic
       val props = new Properties
@@ -214,7 +214,6 @@ object KafkaLoadStage {
               props.putAll(commonProps)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-              stageParams.foreach { case (key, value) => props.put(key, value) }
 
               // create producer
               val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)
