@@ -187,6 +187,7 @@ object KafkaExtractStage {
       commonProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, Math.min(10000, stage.timeout-1).toString)
       commonProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, Math.min(500, stage.timeout-1).toString)
       commonProps.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, Math.min(3000, stage.timeout-2).toString)
+      stage.params.foreach { case (key, value) => commonProps.put(key, value) }
 
       val props = new Properties
       props.putAll(commonProps)
@@ -218,7 +219,6 @@ object KafkaExtractStage {
       val stageTopic = stage.topic
       val stageTimeout = stage.timeout
       val stageAutoCommit = stage.autoCommit
-      val stageParams = stage.params
 
       val df = try {
         spark.sparkContext.parallelize(Seq.empty[String]).repartition(endOffsets.size).mapPartitions {
@@ -230,7 +230,6 @@ object KafkaExtractStage {
             props.putAll(commonProps)
             props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
             props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stageMaxPollRecords.toString)
-            stageParams.foreach { case (key, value) => props.put(key, value) }
 
             // try to assign records based on partitionId and extract
             val kafkaConsumer = new KafkaConsumer[Array[Byte], Array[Byte]](props)

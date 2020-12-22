@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.11.2
+
+- **FIX** ensure all values in `params` are added to the Kafka connector parameters for all communication.
+
 ## 1.11.1
 
 - **FIX** add logging of missing `groupID` parameter in `KafkaCommitExecute`.

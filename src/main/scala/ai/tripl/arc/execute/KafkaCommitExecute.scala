@@ -113,6 +113,7 @@ object KafkaCommitExecuteStage {
       props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
       props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+      stage.params.foreach { case (key, value) => props.put(key, value) }
 
       // loop and commit for each consumer group
       kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) =>
