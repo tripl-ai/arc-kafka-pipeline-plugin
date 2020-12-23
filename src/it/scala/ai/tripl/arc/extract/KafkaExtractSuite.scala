@@ -167,6 +167,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -240,6 +241,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -261,6 +263,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -334,6 +337,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=true,
         persist=true,
@@ -355,6 +359,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=true,
         persist=true,
@@ -391,6 +396,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -454,6 +460,7 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
           bootstrapServers=bootstrapServers,
           groupID=groupId,
           maxPollRecords=10000,
+          maxRecords=None,
           timeout=timeout,
           autoCommit=false,
           persist=true,
@@ -466,5 +473,68 @@ class KafkaExtractSuite extends FunSuite with BeforeAndAfter {
     }
 
     assert(thrown0.getMessage.contains(s"topic '${topic}' not found in Kafka cluster with bootstrapServers '${bootstrapServers}'."))
+  }
+
+  test("KafkaExtract: maxRecords") {
+    implicit val spark = session
+    import spark.implicits._
+    implicit val logger = TestUtils.getLogger()
+    implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
+
+    val topic = UUID.randomUUID.toString
+    val groupId = UUID.randomUUID.toString
+
+    val dataset = spark.sqlContext.range(0, 9748)
+      .select("id")
+      .withColumn("uniform", rand(seed=10))
+      .withColumn("normal", randn(seed=27))
+      .repartition(numPartitions, col("id"))
+      .toJSON
+      .select(col("value").cast(BinaryType))
+
+    dataset.createOrReplaceTempView(inputView)
+
+    val conf = s"""{
+      "stages": [
+        {
+          "type": "KafkaLoad",
+          "name": "try to parse",
+          "environments": [
+            "production",
+            "test"
+          ],
+          "inputView": "${inputView}",
+          "bootstrapServers": "${bootstrapServers}",
+          "topic": "${topic}",
+          "batchSize": 10000
+        },
+        {
+          "type": "KafkaExtract",
+          "name": "try to parse",
+          "environments": [
+            "production",
+            "test"
+          ],
+          "outputView": "${outputView0}",
+          "bootstrapServers": "${bootstrapServers}",
+          "topic": "${topic}",
+          "groupID": "${groupId}",
+          "timeout": ${timeout},
+          "maxPollRecords": 100,
+          "maxRecords": 97
+        }
+      ]
+    }"""
+
+    val pipelineEither = ArcPipeline.parseConfig(Left(conf), arcContext)
+
+    pipelineEither match {
+      case Left(err) => fail(err.toString)
+      case Right((pipeline, _)) => {
+        val df = ARC.run(pipeline).get
+        // deliberately not a multiple of 10 (partitions)
+        assert(df.count == 97)
+      }
+    }
   }
 }

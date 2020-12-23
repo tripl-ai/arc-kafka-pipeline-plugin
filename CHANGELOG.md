@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.12.0
+
+- add `maxRecords` parameter to `KafkaExtract` to allow specification of maximum number of records per execution.
+
 ## 1.11.2
 
 - **FIX** ensure all values in `params` are added to the Kafka connector parameters for all communication.

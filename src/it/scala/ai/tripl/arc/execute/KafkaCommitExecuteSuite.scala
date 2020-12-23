@@ -96,6 +96,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -108,8 +109,9 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
 
     var expected = dataset0
     var actual = extractDataset0.select("value")
-    assert(actual.except(expected).count === 0)
-    assert(expected.except(actual).count === 0)
+    assert(actual.count == 100)
+    assert(actual.except(expected).count == 0)
+    assert(expected.except(actual).count == 0)
 
     // read should have no offset saved (autoCommit=false) so get all 100 records
     val extractDataset1 = extract.KafkaExtractStage.execute(
@@ -123,6 +125,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -135,8 +138,9 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
 
     expected = dataset0
     actual = extractDataset1.select("value")
-    assert(actual.except(expected).count === 0)
-    assert(expected.except(actual).count === 0)
+    assert(actual.count == 100)
+    assert(actual.except(expected).count == 0)
+    assert(expected.except(actual).count == 0)
 
     // execute the update
     ai.tripl.arc.execute.KafkaCommitExecuteStage.execute(
@@ -164,6 +168,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -174,7 +179,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
       )
     ).get
     actual = extractDataset2.select("value")
-    assert(actual.count === 0)
+    assert(actual.count == 0)
 
     // insert 200 records
     val dataset1 = spark.sqlContext.range(0, 200)
@@ -215,6 +220,7 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
         bootstrapServers=bootstrapServers,
         groupID=groupId,
         maxPollRecords=10000,
+        maxRecords=None,
         timeout=timeout,
         autoCommit=false,
         persist=true,
@@ -227,7 +233,112 @@ class KafkaCommitExecuteSuite extends FunSuite with BeforeAndAfter {
 
     expected = dataset1
     actual = extractDataset3.select("value")
-    assert(actual.except(expected).count === 0)
-    assert(expected.except(actual).count === 0)
+    assert(actual.count == 200)
+    assert(actual.except(expected).count == 0)
+    assert(expected.except(actual).count == 0)
+  }
+
+  test("KafkaCommitExecute: Limit") {
+    implicit val spark = session
+    import spark.implicits._
+    implicit val logger = TestUtils.getLogger()
+    implicit val arcContext = TestUtils.getARCContext(isStreaming=false)
+
+    val topic = UUID.randomUUID.toString
+    val groupId = UUID.randomUUID.toString
+
+    // insert 100 records
+    val dataset0 = spark.sqlContext.range(0, 100)
+      .select("id")
+      .withColumn("uniform", rand(seed=10))
+      .withColumn("normal", randn(seed=27))
+      .repartition(10)
+      .toJSON
+      .select(col("value").cast(BinaryType))
+
+    dataset0.createOrReplaceTempView(inputView0)
+    load.KafkaLoadStage.execute(
+      load.KafkaLoadStage(
+        plugin=new load.KafkaLoad,
+        id=None,
+        name="df",
+        description=None,
+        inputView=inputView0,
+        topic=topic,
+        bootstrapServers=bootstrapServers,
+        acks= -1,
+        numPartitions=None,
+        batchSize=16384,
+        retries=0,
+        params=Map.empty
+      )
+    )
+
+    // read should have no offset saved as using uuid group id so get records limited to 17
+    val extractDataset0 = extract.KafkaExtractStage.execute(
+      extract.KafkaExtractStage(
+        plugin=new extract.KafkaExtract,
+        id=None,
+        name="df",
+        description=None,
+        outputView=outputView,
+        topic=topic,
+        bootstrapServers=bootstrapServers,
+        groupID=groupId,
+        maxPollRecords=10000,
+        maxRecords=Some(17),
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
+        partitionBy=Nil,
+        strict=true,
+        params=Map.empty
+      )
+    ).get
+
+    var expected = dataset0
+    var actual = extractDataset0.select("value")
+    assert(actual.count == 17)
+
+    // execute the update
+    ai.tripl.arc.execute.KafkaCommitExecuteStage.execute(
+      ai.tripl.arc.execute.KafkaCommitExecuteStage(
+        plugin=new ai.tripl.arc.execute.KafkaCommitExecute,
+        id=None,
+        name="df",
+        description=None,
+        inputView=outputView,
+        bootstrapServers=bootstrapServers,
+        groupID=groupId,
+        params=Map.empty
+      )
+    )
+
+    // read should now have offset saved so should return 100-17 records
+    val extractDataset1 = extract.KafkaExtractStage.execute(
+      extract.KafkaExtractStage(
+        plugin=new extract.KafkaExtract,
+        id=None,
+        name="df",
+        description=None,
+        outputView=outputView,
+        topic=topic,
+        bootstrapServers=bootstrapServers,
+        groupID=groupId,
+        maxPollRecords=10000,
+        maxRecords=None,
+        timeout=timeout,
+        autoCommit=false,
+        persist=true,
+        numPartitions=None,
+        partitionBy=Nil,
+        strict=true,
+        params=Map.empty
+      )
+    ).get
+
+    actual = extractDataset1.select("value")
+    assert(actual.count == 100-17)
   }
 }

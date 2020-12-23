@@ -126,7 +126,6 @@ object KafkaCommitExecuteStage {
           // commit only up to the endOffset retrieved at the start of the job
           val offsets = new java.util.HashMap[TopicPartition,OffsetAndMetadata]()
           offsets.put(kafkaPartition.topicPartition, new OffsetAndMetadata(kafkaPartition.endOffset))
-
           kafkaConsumer.commitSync(offsets)
         } finally {
           kafkaConsumer.close
