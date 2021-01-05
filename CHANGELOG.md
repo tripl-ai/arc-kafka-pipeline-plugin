@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.13.0
+
+- mask values in `params` which key contains the string  `password`.
+- bump to Arc 3.7.0.
+
 ## 1.12.0
 
 - add `maxRecords` parameter to `KafkaExtract` to allow specification of maximum number of records per execution.
