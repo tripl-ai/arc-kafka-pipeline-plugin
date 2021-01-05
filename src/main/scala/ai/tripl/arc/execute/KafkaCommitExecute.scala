@@ -16,22 +16,22 @@ import ai.tripl.arc.config.Error._
 import ai.tripl.arc.plugins.PipelineStagePlugin
 import ai.tripl.arc.util.DetailException
 import ai.tripl.arc.extract.KafkaPartition
+import ai.tripl.arc.util.MaskUtils
 
 class KafkaCommitExecute extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
 
-  val snippet = """{
+  def snippet()(implicit arcContext: ARCContext): String = {
+    s"""{
     |  "type": "KafkaCommitExecute",
     |  "name": "KafkaCommitExecute",
-    |  "environments": [
-    |    "production",
-    |    "test"
-    |  ],
+    |  "environments": [${arcContext.completionEnvironments.map { env => s""""${env}""""}.mkString(", ")}],
     |  "bootstrapServers": "kafka:9092",
     |  "groupID": "groupID",
     |  "inputView": "inputView"
     |}""".stripMargin
+  }
 
   val documentationURI = new java.net.URI(s"${baseURI}/execute/#kafkacommitexecute")
 
@@ -67,6 +67,7 @@ class KafkaCommitExecute extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("inputView", inputView)
         stage.stageDetail.put("bootstrapServers", bootstrapServers)
         stage.stageDetail.put("groupID", groupID)
+        stage.stageDetail.put("params", MaskUtils.maskParams(params.keySet.filter { key => key.contains("password") }.toList)(params).asJava)
 
         Right(stage)
       case _ =>

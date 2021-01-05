@@ -27,23 +27,23 @@ import ai.tripl.arc.util.ExtractUtils
 import ai.tripl.arc.util.MetadataUtils
 import ai.tripl.arc.util.ListenerUtils
 import ai.tripl.arc.util.Utils
+import ai.tripl.arc.util.MaskUtils
 import ai.tripl.arc.extract.KafkaPartition
 
 class KafkaLoad extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
 
-  val snippet = """{
+  def snippet()(implicit arcContext: ARCContext): String = {
+    s"""{
     |  "type": "KafkaLoad",
     |  "name": "KafkaLoad",
-    |  "environments": [
-    |    "production",
-    |    "test"
-    |  ],
+    |  "environments": [${arcContext.completionEnvironments.map { env => s""""${env}""""}.mkString(", ")}],
     |  "inputView": "inputView",
     |  "bootstrapServers": "kafka:9092",
     |  "topic": "topic"
     |}""".stripMargin
+  }
 
   val documentationURI = new java.net.URI(s"${baseURI}/load/#kafkaload")
 
@@ -90,7 +90,7 @@ class KafkaLoad extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("acks", java.lang.Integer.valueOf(acks))
         stage.stageDetail.put("retries", java.lang.Integer.valueOf(retries))
         stage.stageDetail.put("batchSize", java.lang.Integer.valueOf(batchSize))
-        stage.stageDetail.put("params", params.asJava)
+        stage.stageDetail.put("params", MaskUtils.maskParams(params.keySet.filter { key => key.contains("password") }.toList)(params).asJava)
 
         Right(stage)
       case _ =>

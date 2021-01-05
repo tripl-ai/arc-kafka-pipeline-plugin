@@ -29,23 +29,23 @@ import ai.tripl.arc.util.EitherUtils._
 import ai.tripl.arc.util.ExtractUtils
 import ai.tripl.arc.util.MetadataUtils
 import ai.tripl.arc.util.Utils
+import ai.tripl.arc.util.MaskUtils
 
 class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
 
   val version = ai.tripl.arc.kafka.BuildInfo.version
 
-  val snippet = """{
+  def snippet()(implicit arcContext: ARCContext): String = {
+    s"""{
     |  "type": "KafkaExtract",
     |  "name": "KafkaExtract",
-    |  "environments": [
-    |    "production",
-    |    "test"
-    |  ],
+    |  "environments": [${arcContext.completionEnvironments.map { env => s""""${env}""""}.mkString(", ")}],
     |  "bootstrapServers": "kafka:9092",
     |  "topic": "topic",
     |  "groupID": "groupID",
     |  "outputView": "outputView"
     |}""".stripMargin
+  }
 
   val documentationURI = new java.net.URI(s"${baseURI}/extract/#kafkaextract")
 
@@ -106,7 +106,7 @@ class KafkaExtract extends PipelineStagePlugin with JupyterCompleter {
         stage.stageDetail.put("autoCommit", java.lang.Boolean.valueOf(autoCommit))
         stage.stageDetail.put("persist", java.lang.Boolean.valueOf(persist))
         stage.stageDetail.put("strict", java.lang.Boolean.valueOf(strict))
-        stage.stageDetail.put("params", params.asJava)
+        stage.stageDetail.put("params", MaskUtils.maskParams(params.keySet.filter { key => key.contains("password") }.toList)(params).asJava)
 
         Right(stage)
       case _ =>
