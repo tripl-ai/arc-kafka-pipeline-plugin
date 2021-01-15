@@ -177,6 +177,7 @@ object KafkaExtractStage {
         .format("kafka")
         .option("kafka.bootstrap.servers", stage.bootstrapServers)
         .option("subscribe", stage.topic)
+        .options(stage.params)
         .load()
     } else {
       // KafkaConsumer properties
