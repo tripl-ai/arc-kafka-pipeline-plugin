@@ -157,6 +157,7 @@ object KafkaLoadStage {
         .format("kafka")
         .option("kafka.bootstrap.servers", stage.bootstrapServers)
         .option("topic", stage.topic)
+        .options(stage.params)
         .start
 
       df
