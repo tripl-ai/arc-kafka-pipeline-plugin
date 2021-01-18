@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.14.0
+
+- add all values in `params` are added to the Kafka connector parameters for all communication when in Streaming mode.
+
 ## 1.13.0
 
 - mask values in `params` which key contains the string  `password`.
