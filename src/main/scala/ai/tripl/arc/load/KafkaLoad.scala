@@ -179,21 +179,12 @@ object KafkaLoadStage {
       val bytesAccumulator = spark.sparkContext.longAccumulator
       val outputMetricsMap = new java.util.HashMap[java.lang.String, java.lang.Long]()
 
-      // KafkaProducer properties
-      // https://kafka.apache.org/documentation/#producerconfigs
-      val commonProps = new Properties
-      commonProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
-      commonProps.put(ProducerConfig.ACKS_CONFIG, String.valueOf(stage.acks))
-      commonProps.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(stage.retries))
-      commonProps.put(ProducerConfig.BATCH_SIZE_CONFIG, String.valueOf(stage.batchSize))
-      stage.params.foreach { case (key, value) => commonProps.put(key, value) }
-
       // the topic so it can be serialised
       val stageTopic = stage.topic
 
       // create producer on the driver to get numPartitions of target topic
       val props = new Properties
-      props.putAll(commonProps)
+      addCommonProps(stage, props)
       props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
       props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
       val kafkaProducer = new KafkaProducer[java.lang.String, java.lang.String](props)
@@ -212,7 +203,7 @@ object KafkaLoadStage {
               val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
 
               val props = new Properties
-              props.putAll(commonProps)
+              addCommonProps(stage, props)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 
@@ -241,7 +232,7 @@ object KafkaLoadStage {
               val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
 
               val props = new Properties
-              props.putAll(commonProps)
+              addCommonProps(stage, props)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
 
@@ -272,7 +263,7 @@ object KafkaLoadStage {
               val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
 
               val props = new Properties
-              props.putAll(commonProps)
+              addCommonProps(stage, props)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 
@@ -302,7 +293,7 @@ object KafkaLoadStage {
               val assignedPartition = java.lang.Integer.valueOf(partitionId % topicNumPartitions)
 
               val props = new Properties
-              props.putAll(commonProps)
+              addCommonProps(stage, props)
               props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
               props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer")
 
@@ -345,4 +336,16 @@ object KafkaLoadStage {
 
     Option(outputDF)
   }
+
+  // KafkaProducer properties
+  // https://kafka.apache.org/documentation/#producerconfigs
+  // putAll fails in Scala 2.12 and > jdk 8
+  private def addCommonProps(stage: KafkaLoadStage, props: Properties): Unit = {
+      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
+      props.put(ProducerConfig.ACKS_CONFIG, String.valueOf(stage.acks))
+      props.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(stage.retries))
+      props.put(ProducerConfig.BATCH_SIZE_CONFIG, String.valueOf(stage.batchSize))
+      stage.params.foreach { case (key, value) => props.put(key, value) }
+  }
+
 }
