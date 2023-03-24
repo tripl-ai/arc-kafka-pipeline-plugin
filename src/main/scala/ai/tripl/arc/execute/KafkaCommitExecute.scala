@@ -109,17 +109,15 @@ object KafkaCommitExecuteStage {
         case None => throw new Exception(s"cannot find previous KafkaExtract commit offsets key '${ai.tripl.arc.extract.KafkaExtractStage.KAFKA_EXTRACT_OFFSET_KEY}_${stage.inputView}'")
       }
 
-      val props = new Properties
-      props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
-      props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
-      props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
-      props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-      stage.params.foreach { case (key, value) => props.put(key, value) }
-
       // loop and commit for each consumer group
       kafkaPartitions.foreach { case (kafkaPartition: KafkaPartition) =>
         val partitionProps = new Properties
-        partitionProps.putAll(props)
+        partitionProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
+        partitionProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+        partitionProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+        partitionProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        stage.params.foreach { case (key, value) => partitionProps.put(key, value) }
+
         partitionProps.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stage.groupID}-${kafkaPartition.topicPartition.partition}")
         val kafkaConsumer = new KafkaConsumer[String, String](partitionProps)
 

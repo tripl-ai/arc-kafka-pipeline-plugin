@@ -180,22 +180,9 @@ object KafkaExtractStage {
         .options(stage.params)
         .load()
     } else {
-      // KafkaConsumer properties
-      // https://kafka.apache.org/documentation/#consumerconfigs
-      val commonProps = new Properties
-      commonProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
-      commonProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer")
-      commonProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer")
-      commonProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
-      commonProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-      commonProps.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, stage.timeout.toString)
-      commonProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, Math.min(10000, stage.timeout-1).toString)
-      commonProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, Math.min(500, stage.timeout-1).toString)
-      commonProps.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, Math.min(3000, stage.timeout-2).toString)
-      stage.params.foreach { case (key, value) => commonProps.put(key, value) }
 
       val props = new Properties
-      props.putAll(commonProps)
+      addCommonProps(stage, props)
       props.put(ConsumerConfig.GROUP_ID_CONFIG, stage.groupID)
 
       // first get the number of partitions, their start and end offsets via the driver process so it can be used for mapPartition
@@ -261,7 +248,7 @@ object KafkaExtractStage {
             val partitionId = TaskContext.getPartitionId
 
             val props = new Properties
-            props.putAll(commonProps)
+            addCommonProps(stage, props)
             props.put(ConsumerConfig.GROUP_ID_CONFIG, s"${stageGroupID}-${partitionId}")
             props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, stageMaxPollRecords.toString)
 
@@ -391,6 +378,21 @@ object KafkaExtractStage {
       }
     }
     snip(xs, targets, Seq.empty)
+  }
+
+  // KafkaConsumer properties
+  // https://kafka.apache.org/documentation/#consumerconfigs
+  private def addCommonProps(stage: KafkaExtractStage, props: Properties): Unit = {
+      props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, stage.bootstrapServers)
+      props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer")
+      props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer")
+      props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+      props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+      props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, stage.timeout.toString)
+      props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, Math.min(10000, stage.timeout-1).toString)
+      props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, Math.min(500, stage.timeout-1).toString)
+      props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, Math.min(3000, stage.timeout-2).toString)
+      stage.params.foreach { case (key, value) => props.put(key, value) }
   }
 
 }
