@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.15.0
+
+- updated to Arc 3.13.1, Spark 3.3.2
+
 ## 1.14.0
 
 - add all values in `params` are added to the Kafka connector parameters for all communication when in Streaming mode.
