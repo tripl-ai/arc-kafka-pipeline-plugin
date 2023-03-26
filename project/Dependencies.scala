@@ -8,7 +8,7 @@ object Dependencies {
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.7" % "test,it"
 
   // arc
-  val arc = "ai.tripl" %% "arc" % "3.13.1" % "provided"
+  val arc = "ai.tripl" %% "arc" % "3.13.2" % "provided"
 
   // spark
   val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
