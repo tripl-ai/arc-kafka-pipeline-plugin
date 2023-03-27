@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.15.1
+
+- switched back to Java 8 build
+
 ## 1.15.0
 
 - updated to Arc 3.13.1, Spark 3.3.2
